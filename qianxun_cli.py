@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""千寻 headless CLI（Mac 移植版，v1.0）。
+"""千寻 headless CLI（v1.0，跨平台：macOS / Linux / Windows）。
 
-让 Mac 上的 agent（deepseek harness / Claude Code / 任意 AI 框架）直接驱动
+让任意 AI agent（deepseek harness / Claude Code / 任意框架）直接驱动
 WorldQuant BRAIN 批量回测闭环，等价于 Windows 千寻的「AI批次」Tab + ai_bridge：
     AI 生成表达式 JSON → submit 批量回测 → 入库 → analyze 读库 → radar 信号灯 → 定向再生成
 
@@ -285,7 +285,7 @@ def cmd_resume(args) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser(prog="qianxun_cli", description="千寻 headless CLI（Mac 版）")
+    p = argparse.ArgumentParser(prog="qianxun_cli", description="千寻 headless CLI（跨平台，Python 3.10+）")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("login", help="登录测试（环境变量 WQ_USERNAME/WQ_PASSWORD）")

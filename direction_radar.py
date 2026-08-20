@@ -34,6 +34,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import random
 import sqlite3
 import statistics
@@ -416,8 +417,8 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="信号灯系统 Direction Radar")
     ap.add_argument("--sharpe", help="逗号分隔的 Sharpe 列表")
     ap.add_argument("--batch", help="千寻批次号（从库读）")
-    ap.add_argument("--db", default=r"C:\Users\onefr\WorkBuddy\2026-07-17-09-40-38\project026_AlphaMachine\data\alpha_machine.db",
-                    help="千寻 alpha_machine.db 路径")
+    ap.add_argument("--db", default=os.path.join(os.path.dirname(__file__), "data", "alpha_machine.db"),
+                    help="千寻 alpha_machine.db 路径（默认：同目录下 data/alpha_machine.db）")
     ap.add_argument("--passed", type=int, help="通过提交检查的数量")
     ap.add_argument("--total", type=int, help="总回测数")
     ap.add_argument("--prev-mean", type=float, help="上一轮均值（对比）")
