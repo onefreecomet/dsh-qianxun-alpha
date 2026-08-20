@@ -164,10 +164,11 @@ AI 批量管理：一键同步 ACTIVE、批量下载 PnL、批量提交回测
 
 ---
 
-## 安装（3 步）
+## 安装（3 步，跨平台）
 
 ### 1. 安装 Python 引擎
 
+**macOS / Linux：**
 ```bash
 git clone https://github.com/onefreecomet/dsh-qianxun-alpha.git
 cd dsh-qianxun-alpha
@@ -175,12 +176,22 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+**Windows（PowerShell）：**
+```powershell
+git clone https://github.com/onefreecomet/dsh-qianxun-alpha.git
+cd dsh-qianxun-alpha
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+```
+
 配置凭据（二选一）：
 
 ```bash
-# 方式 A：环境变量（推荐）
+# 方式 A：环境变量（推荐，跨平台通用）
 export WQ_USERNAME='你的BRAIN邮箱'
 export WQ_PASSWORD='你的BRAIN密码'
+# Windows PowerShell: $env:WQ_USERNAME='...'; $env:WQ_PASSWORD='...'
 
 # 方式 B：系统 keyring（GUI 登录时自动存入）
 python3 qianxund.py login
@@ -189,17 +200,41 @@ python3 qianxund.py login
 ### 2. 启动引擎
 
 ```bash
+# macOS / Linux
 python3 qianxund.py serve --port 8765 --concurrent 3 --batch-size 10
-# 验证
-curl http://127.0.0.1:8765/health
+
+# Windows（PowerShell）
+python qianxund.py serve --port 8765 --concurrent 3 --batch-size 10
 ```
 
-### 3. 安装 DSH 插件
+验证（所有平台通用）：
+```bash
+curl http://127.0.0.1:8765/health
+# 或 Windows PowerShell：
+# Invoke-RestMethod http://127.0.0.1:8765/health
+```
+
+### 3. 安装 DSH 插件 + 重启
 
 ```bash
 dsh plugin add @deepseek-ai/dsh-qianxun-tab --profile web
 dsh plugin add dsh-qianxun-server --profile web
+```
+
+重启 DSH（按你的平台选一个）：
+
+```bash
+# macOS
 launchctl kickstart -k gui/$(id -u)/com.deepseek.dsh-web
+
+# Linux（systemd）
+systemctl --user restart com.deepseek.dsh-web
+
+# Windows（PowerShell）
+# 方法 1：任务管理器里结束 dsh-web 进程，然后重新启动
+# 方法 2：如果有 launchd-like 服务：
+#   net stop com.deepseek.dsh-web && net start com.deepseek.dsh-web
+# 方法 3：直接在终端运行 dsh web
 ```
 
 打开 http://127.0.0.1:3080，右侧栏应出现「千寻回测」tab。
@@ -339,13 +374,15 @@ python qianxun_cli.py resume B20260819-001
 
 | 问题 | 原因 | 解决 |
 |---|---|---|
-| 侧边栏无「千寻回测」tab | DSH 插件未安装 | `dsh plugin add @deepseek-ai/dsh-qianxun-tab --profile web` + 重启 |
-| 引擎显示离线 | qianxund 未运行 | `python3 qianxund.py serve --port 8765` |
+| 侧边栏无「千寻回测」tab | DSH 插件未安装 | `dsh plugin add ... --profile web` + 重启（见安装第 3 步） |
+| 引擎显示离线 | qianxund 未运行 | `python3 qianxund.py serve --port 8765`（macOS/Linux）或 `python qianxund.py serve --port 8765`（Windows） |
 | 400 Bad Request | BRAIN 访问限制 | 检查 universe 是否在账户权限内 |
 | 429 Rate Limit | BRAIN 限流 | 等待 60s，同步任务自动处理 |
 | captcha 错误 | BRAIN 触发人机验证 | 去 BRAIN 浏览器手动解谜后重试 |
 | SELF_CORRELATION 全 0 | PnL 缓存为空 | 点「🔄 同步 ACTIVE」 |
 | 📐 按钮无响应 | BRAIN PnL 拉取失败 | 检查 BRAIN 登录状态 |
+| Windows 路径报错 | 使用了旧版 Windows 硬编码路径 | 更新到最新版（已修复），确保 `data/` 在项目目录下 |
+| Linux DSH 重启 | 不知道怎么重启 DSH | `systemctl --user restart com.deepseek.dsh-web` 或手动结束 dsh-web 进程后重启 |
 
 ---
 
