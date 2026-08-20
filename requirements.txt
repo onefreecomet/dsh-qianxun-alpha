@@ -1,0 +1,10 @@
+# 千寻 headless CLI（Mac 移植版）依赖
+
+httpx>=0.27
+loguru>=2.7
+
+# 安装：
+#   python3 -m venv .venv && source .venv/bin/activate
+#   pip install -r requirements.txt
+# 或直接：
+#   pip3 install httpx loguru

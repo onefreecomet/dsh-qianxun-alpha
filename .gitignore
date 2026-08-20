@@ -1,0 +1,32 @@
+# 凭据 — 严禁入库（BRAIN 登录凭据，任何格式都排除）
+credential.txt
+credential.json
+.credential.json
+.braintoken
+*.env
+.env*
+
+# 运行时数据（SQLite / 日志 / 结果）
+data/
+*.db
+*.db-*
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# PnL 缓存（本地 BRAIN 代理下载的 alpha PnL 数据 —— 严禁入库）
+pnl/
+pnl_cache/
+
+# 日志
+*.log
+
+# 个人文件
+.DS_Store
+Thumbs.db
+
+# 虚拟环境
+.venv/
+venv/
