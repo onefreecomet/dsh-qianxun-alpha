@@ -58,6 +58,22 @@
  .toast{position:fixed;bottom:20px;right:20px;background:#1f4a3a;border:1px solid var(--ok);
    color:var(--fg);padding:10px 14px;border-radius:8px;font-size:13px;display:none;z-index:99;max-width:60vw}
  .hint{font-size:11.5px;color:var(--dim);margin-top:4px}
+ /* check 面板 */
+ .check-panel{margin:8px 0;padding:10px 12px;background:#0b0d11;border:1px solid var(--line);border-radius:8px;font-size:12px}
+ .check-panel h3{margin:0 0 6px;font-size:12px;color:var(--dim);display:flex;justify-content:space-between;align-items:center}
+ .check-row{display:flex;gap:8px;align-items:center;padding:3px 0;border-bottom:1px solid #1c2130;font-size:12px}
+ .check-row:last-child{border-bottom:none}
+ .check-name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:ui-monospace,Menlo,monospace}
+ .check-val{width:80px;text-align:right;font-family:ui-monospace,Menlo,monospace;color:var(--dim)}
+ .check-result{width:65px;text-align:right}
+ .check-summary{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+ .check-panel .close{cursor:pointer;color:var(--dim);font-size:14px;line-height:1}
+ .check-panel .close:hover{color:var(--fg)}
+ .check-loading{color:var(--run);font-size:12px;padding:8px 0}
+ .pc-row{display:flex;gap:6px;align-items:center;padding:2px 0}
+ .pc-name{flex:1;font-family:ui-monospace,Menlo,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .pc-val{width:70px;text-align:right;font-family:ui-monospace,Menlo,monospace}
+ .pc-max{font-weight:700;font-size:13px;margin:6px 0}
 </style></head><body>
 <header>
  <h1>千寻融合控制台</h1>
@@ -93,6 +109,7 @@
   <div class="card">
     <h2 id="selTitle">选择一个批次查看详情 / 指标 / 日志</h2>
     <div id="detail"><div class="empty">点左侧批次。回测成功后这里显示每个 alpha 的 Sharpe / Fitness / 收益 / 换手 / 保证金 / check 状态。</div></div>
+    <div id="checkPanel"></div>
   </div>
  </div>
 </main>
@@ -183,7 +200,7 @@ async function loadDetail(id){
       <div id="log"><div class="empty">等待日志…</div></div></div>`;
   if(logJob!==id){logAfter=0;logJob=id;}
   const lg=await j(`/api/jobs/${id}/log?after=${logAfter}`).catch(()=>null);
-  if(lg&&lg.lines.length){logAfter=lg.after;
+  if(lg&&lg.lines&&lg.lines.length){logAfter=lg.after;
     const el=$('#log'); el.textContent=(el.textContent==='等待日志…'?'':el.textContent)+
       lg.lines.map(l=>l.line).join('\n')+'\n'; el.scrollTop=el.scrollHeight;}
 }
@@ -226,6 +243,98 @@ async function submitJob(){
   finally{btn.disabled=false}
 }
 function sel(id){SEL=id;refresh();}
+// ── check / prod_corr / local self-corr ──
+let activeCheckAlpha=null;
+async function showCheckPanel(alphaId,type){
+  activeCheckAlpha=alphaId;
+  const panel=$('#checkPanel');
+  panel.innerHTML='<div class="check-loading">加载中…</div>';
+  try{
+    if(type==='check'){
+      const d=await j('/api/alphas/'+encodeURIComponent(alphaId)+'/check');
+      const checks=d?.is?.checks||[];
+      const pass=checks.filter(c=>c.result==='PASS').length;
+      const fail=checks.filter(c=>c.result==='FAIL').length;
+      const warn=checks.filter(c=>c.result==='WARNING').length;
+      const pend=checks.filter(c=>c.result==='PENDING').length;
+      const pc=checks.find(c=>c.name==='PROD_CORRELATION');
+      panel.innerHTML=`<h3>BRAIN check · ${esc(alphaId)}<span class="close" onclick="closeCheck()">✕</span></h3>
+        <div class="check-summary">
+          ${pass?`<span class="badge b-pass">${pass} pass</span>`:''}
+          ${fail?`<span class="badge b-fail">${fail} fail</span>`:''}
+          ${warn?`<span class="badge b-warn">${warn} warn</span>`:''}
+          ${pend?`<span class="badge b-none">${pend} pending</span>`:''}
+        </div>
+        ${checks.map(c=>`<div class="check-row"><span class="check-name">${esc(c.name)}</span>
+          <span class="check-val">${c.value!=null?num(c.value):c.limit!=null?'限 '+num(c.limit):''}</span>
+          <span class="check-result">${chkBadge((c.result||'').toLowerCase())}</span></div>`).join('')}`;
+    }else if(type==='prod_corr'){
+      const d=await j('/api/alphas/'+encodeURIComponent(alphaId)+'/correlations/prod');
+      const mx=d?.max; const mn=d?.min;
+      const deadZone=mx!=null&&mx>=0.7;
+      const margin=mx!=null?Math.max(0,(0.7-mx)):null;
+      panel.innerHTML=`<h3>prod corr · ${esc(alphaId)}<span class="close" onclick="closeCheck()">✕</span></h3>
+        <div class="check-row"><span class="check-name">max</span><span class="check-val" style="color:${deadZone?'var(--err)':'var(--ok)'};font-weight:700">${mx!=null?num(mx):'—'}</span></div>
+        <div class="check-row"><span class="check-name">min</span><span class="check-val">${mn!=null?num(mn):'—'}</span></div>
+        <div class="check-row"><span class="check-name">margin (0.7-max)</span><span class="check-val" style="color:${margin!=null&&margin>=0.05?'var(--ok)':'var(--err)'}">${margin!=null?num(margin):'—'}</span></div>
+        ${deadZone?`<div style="margin-top:6px;padding:6px 8px;background:#3f1216;border-radius:6px;color:var(--err)">⚠ max prod_corr ≥ 0.70 死区线，此 alpha 大概率 submission FAIL</div>`:''}
+        ${!deadZone&&mx!=null?`<div style="margin-top:6px;padding:6px 8px;background:#0f2b18;border-radius:6px;color:var(--ok)">✓ 安全边际 ${num(margin)}（死区线 0.70）</div>`:''}
+        <div class="meta" style="margin-top:6px">候选集：${d?.records?.length??0} 条</div>`;
+    }else if(type==='local'){
+      // 本地 SELF_CORRELATION：下载目标 PnL → 下载缓存里所有 alpha PnL → Pearson
+      const targetResp=await j('/api/pnl-cache/'+encodeURIComponent(alphaId));
+      const cacheList=await j('/api/pnl-cache');
+      const otherIds=(cacheList.items||[]).map(i=>i.alpha_id).filter(id=>id!==alphaId);
+      if(!otherIds.length){
+        panel.innerHTML=`<h3>本地 SELF_CORRELATION · ${esc(alphaId)}<span class="close" onclick="closeCheck()">✕</span></h3><div class="check-loading">无其它缓存 alpha 可对比</div>`;return;
+      }
+      // 并发拉候选 PnL（限流 4 个）
+      const cands=[];
+      for(let i=0;i<otherIds.length;i+=4){
+        const batch=otherIds.slice(i,i+4);
+        const results=await Promise.all(batch.map(async aid=>{
+          try{const p=await j('/api/pnl-cache/'+encodeURIComponent(aid));return{aid,records:p.records||[]};}
+          catch{return{aid,records:[]};}
+        }));
+        cands.push(...results);
+      }
+      const valid=cands.filter(c=>c.records.length>0);
+      // 计算 Pearson
+      function pnlReturns(recs){
+        const out=[];for(let i=1;i<recs.length;i++){
+          const cur=recs[i]?.pnl,prev=recs[i-1]?.pnl;
+          if(typeof cur==='number'&&typeof prev==='number'&&isFinite(cur)&&isFinite(prev))out.push(cur-prev);
+        }return out;}
+      function pearson(a,b){const n=Math.min(a.length,b.length);if(n<2)return NaN;let sx=0,sy=0;for(let i=0;i<n;i++){sx+=a[i];sy+=b[i];}const mx=sx/n,my=sy/n;let num=0,dx=0,dy=0;for(let i=0;i<n;i++){const dxi=a[i]-mx;const dyi=b[i]-my;num+=dxi*dyi;dx+=dxi*dxi;dy+=dyi*dyi;}const den=Math.sqrt(dx*dy);return den===0?NaN:num/den;}
+      const tgtReturns=pnlReturns(targetResp.records||[]);
+      const perCandidate=valid.map(c=>{const cRet=pnlReturns(c.records);const n=Math.min(tgtReturns.length,cRet.length);if(n<30)return{aid:c.aid,corr:null,overlap:n};const corr=pearson(tgtReturns.slice(0,n),cRet.slice(0,n));return{aid:c.aid,corr:isNaN(corr)?null:corr,overlap:n};});
+      let maxCorr=null,minCorr=null;
+      perCandidate.forEach(c=>{if(c.corr!==null){if(maxCorr===null||c.corr>maxCorr)maxCorr=c.corr;if(minCorr===null||c.corr<minCorr)minCorr=c.corr;}});
+      panel.innerHTML=`<h3>本地 SELF_CORRELATION · ${esc(alphaId)}<span class="close" onclick="closeCheck()">✕</span></h3>
+        <div class="check-row"><span class="check-name">候选数</span><span class="check-val">${perCandidate.length}</span></div>
+        <div class="check-row"><span class="check-name">target 日数</span><span class="check-val">${(targetResp.records||[]).length}</span></div>
+        <div class="check-row"><span class="check-name" style="font-weight:700">max</span><span class="check-val" style="color:${maxCorr!=null&&maxCorr>=0.7?'var(--err)':'var(--ok)'};font-weight:700">${maxCorr!=null?num(maxCorr):'—'}</span></div>
+        ${perCandidate.map(c=>`<div class="pc-row"><span class="pc-name">${esc(c.aid)}</span><span style="width:50px;text-align:right;font-size:11px;color:var(--dim)">${c.overlap}d</span><span class="pc-val" style="color:${c.corr!==null&&c.corr>=0.7?'var(--err)':'var(--ok)'}">${c.corr!==null?num(c.corr):'n/a'}</span></div>`).join('')}
+        <div class="meta" style="margin-top:6px">BRAIN SELF_CORRELATION PENDING 时本面板立即可读；PASS 后两者差异 ≤0.05</div>`;
+    }
+  }catch(e){panel.innerHTML=`<h3>Error<span class="close" onclick="closeCheck()">✕</span></h3><div style="color:var(--err)">${esc(String(e))}</div>`;}
+}
+function closeCheck(){const p=$('#checkPanel');if(p)p.innerHTML='';activeCheckAlpha=null;}
+// 修改 loadDetail 中的行渲染：添加 🔍/📈/📐 按钮
+const _origLoadDetail=loadDetail;
+loadDetail=async function(id){
+  await _origLoadDetail(id);
+  // 给每行添加 action 按钮
+  document.querySelectorAll('#detail .expr').forEach(el=>{
+    const aid=el.querySelector('.aid')?.textContent?.trim();
+    if(!aid||el.querySelector('.act'))return;
+    const act=document.createElement('span');act.className='act';
+    act.innerHTML=`<button title="BRAIN check 详细" onclick="showCheckPanel('${esc(aid)}','check')">🔍</button>`+
+      `<button title="prod corr 真值" onclick="showCheckPanel('${esc(aid)}','prod_corr')">📈</button>`+
+      `<button title="本地 SELF_CORRELATION" onclick="showCheckPanel('${esc(aid)}','local')">📐</button>`;
+    el.appendChild(act);
+  });
+};
 $('#concApply').onclick=applyAction; $('#bsApply').onclick=applyAction;
 $('#fSubmit').onclick=submitJob;
 refreshMeta(); setInterval(refresh,3000); setInterval(refreshMeta,30000); refresh();
