@@ -101,7 +101,10 @@
 -rank(volume)</textarea>
    <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
      <button id="fSubmit" class="ok">提交批次</button>
+     <button id="fImport">📥 导入 JSON</button>
+     <input type="file" id="fImportFile" accept=".json,application/json" style="display:none">
      <span class="hint" id="fResult"></span></div>
+   <div class="hint" id="fImportHint" style="display:none"></div>
   </div>
   <div class="card"><h2>AI 批次（batch_no = B+日期-序号）</h2><div id="jobs"><div class="empty">加载中…</div></div></div>
  </div>
@@ -337,5 +340,33 @@ loadDetail=async function(id){
 };
 $('#concApply').onclick=applyAction; $('#bsApply').onclick=applyAction;
 $('#fSubmit').onclick=submitJob;
+// ── JSON 导入（侧边栏导入功能搬到 Web）──
+$('#fImport').onclick=()=>$('#fImportFile').click();
+$('#fImportFile').onchange=async function(e){
+  const file=e.target.files&&e.target.files[0]; e.target.value='';
+  if(!file) return;
+  const hint=$('#fImportHint');
+  try{
+    const data=JSON.parse(await file.text());
+    let settings={},exprs=[],name='';
+    if(Array.isArray(data)) exprs=data.filter(s=>typeof s==='string');
+    else if(typeof data==='string') exprs=[data];
+    else if(data&&typeof data==='object'){
+      if(data.settings&&typeof data.settings==='object') settings=data.settings;
+      if(Array.isArray(data.expressions)) exprs=data.expressions.filter(s=>typeof s==='string');
+      else if(typeof data.expressions==='string') exprs=data.expressions.split('\n').map(s=>s.trim()).filter(Boolean);
+      if(typeof data.name==='string') name=data.name;
+    }else throw new Error('JSON 必须是对象、数组或字符串');
+    if(!exprs.length) throw new Error('expressions 为空');
+    $('#fSettings').value=JSON.stringify(settings,null,2);
+    $('#fExprs').value=exprs.join('\n');
+    if(name) $('#fName').value=name;
+    hint.textContent=`✓ 已导入 ${exprs.length} 条表达式${name?' · 批次名: '+name:''}`;
+    hint.style.color='var(--ok)'; hint.style.display='block';
+  }catch(err){
+    hint.textContent='✗ 导入失败: '+err.message;
+    hint.style.color='var(--err)'; hint.style.display='block';
+  }
+};
 refreshMeta(); setInterval(refresh,3000); setInterval(refreshMeta,30000); refresh();
 </script></body></html>
