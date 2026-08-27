@@ -6,11 +6,25 @@
 
 ## v0.3.0 (2026-08-27)
 
-### ⚡ 启动引擎 — 真正一键拉起
+### ⚡ 一键启动引擎 — 真正一键拉起
 - 新增 **常驻启动器 `qianxund-start-server.py`**（HTTP 127.0.0.1:8766，launchd `com.qianxund-start` 托管，永远在线）
 - 侧边栏「⚡ 启动引擎」按钮**真正能启动引擎**：点击 → 启动器 `POST /api/start` → launchd kickstart 拉起 qianxund → 轮询等就绪
 - 离线时按钮显示"⚡ 启动中…"+ 禁用，成功转绿"🟢 引擎在线"，失败给明确提示
 - 引擎由 launchd `com.qianxund`（KeepAlive）托管，崩溃自动重启（实测 kill 后 3 秒拉起）
+
+### 📋 提示词模块（侧边栏新增）
+- 侧边栏新增「📋 提示词」卡片（`prompts.ts` + `PromptEditTab.tsx`）：
+  - 名字列表 + ⧉ 一键复制按钮
+  - 点击列表项 → 新开 tab 编辑（名称 + 内容，500ms 防抖自动保存）
+  - 🗑 删除功能 + 状态提示
+- 提示词存浏览器 `localStorage`（`qianxun_prompts` key，上限 200 条/20000 字），不依赖后端
+
+### 🚀 提交批次 → Web UI + JSON 导入
+- 侧边栏「🚀 提交批次」卡片**迁移到 Web UI** `http://127.0.0.1:8765/ui`
+- Web UI 新增「📥 导入 JSON」按钮：
+  - 支持 3 种 AI 输出格式：完整 BRAIN 格式 `{settings, expressions, name}` / 裸数组 / 裸字符串
+  - 点击后 settings + expressions + 批次名自动填入表单
+- 侧边栏空位由「📋 提示词」模块接管
 
 ### 🎨 侧边栏 UI 优化
 - **引擎配置卡片**精简：标题去掉"/ 配额"、输入框紧凑化（72px 居中）、删冗余"当前并发"行
@@ -21,11 +35,15 @@
 ### 🐛 修复
 - 引擎离线状态检测：前端 `/health` 探测 + 启动器 `/api/status` 双确认
 - 引擎配置卡片移除未使用的 `config` state（避免 TS 告警）
+- 启动器 `start_engine()`：优先 `launchctl kickstart`（而非 spawn），确保引擎回到 KeepAlive 托管
 
 ### 📦 涉及文件
 - 新增 `qianxund-start-server.py` + `~/Library/LaunchAgents/com.qianxund-start.plist`
+- 新增 `prompts.ts` + `PromptEditTab.tsx`（提示词模块）
+- 新增 `index.ts` 注册 `qianxun-prompt` tab
 - 修改 `~/Library/LaunchAgents/com.qianxund.plist`（并发 3→6，批大小 10→8）
 - 修改前端 `QianxunTab.tsx` / `QianxunTab.module.css`
+- 修改 `backtestd_ui.html`（Web UI 新增 JSON 导入）
 
 ---
 
