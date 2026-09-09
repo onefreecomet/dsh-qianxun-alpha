@@ -108,6 +108,12 @@ class APIClient:
                     timeout=self.config.timeout,
                     follow_redirects=True,
                     headers={"User-Agent": "AlphaMachine/0.1"},
+                    # 修复（2026-08-30）：限制连接池复用，避免持久连接
+                    # 在 BRAIN 端 SSL 挂起导致进度轮询卡死
+                    limits=httpx.Limits(
+                        max_connections=1,
+                        max_keepalive_connections=0,
+                    ),
                 )
             return self._client
 
@@ -379,7 +385,12 @@ class APIClient:
 
         v28：解析响应头的 x-ratelimit-limit/remaining/reset（每日回测配额），
         存入 self.last_ratelimit 供 UI 显示"回测槽剩余 + 重置时间"。
+
+        修复（2026-08-30）：重建 httpx client（新连接池）避免持久连接
+        在 BRAIN 端挂起；连接池限制在 _get_client 已配置。
         """
+        # 仅当认证失效时才重新认证（避免频繁重认证触发 BRAIN 429 rate limit）
+        # 连接池重建由 _get_client 的 max_keepalive_connections=0 保证每次新连接
         resp = self._request_with_retry(
             "POST", "/simulations", json=simulations,
             op_name="create_multi_sim",

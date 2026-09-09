@@ -342,6 +342,15 @@ def _normalize_settings(settings: dict) -> dict:
 # ------------------------------------------------------------- HTTP ----
 UISTATE = None  # DaemonState 实例, serve() 时注入
 
+# ---- Osmosis 分配器（隔离扩展：仅新增 /osmosis 页面与 /api/osmosis/* 路由，
+#      加载失败只打印告警并禁用扩展，绝不影响主看板功能）----
+try:
+    import osmosis_service as _OSMOSIS  # noqa: E402
+    _OSMOSIS.configure(cred_getter=load_credentials)  # 凭据仅经环境变量进 runner 子进程
+except Exception as _osm_err:  # pragma: no cover
+    print(f"[qxd] osmosis 扩展未启用: {_osm_err}", flush=True)
+    _OSMOSIS = None
+
 
 class Handler(BaseHTTPRequestHandler):
     server_version = "qianxund/1.0"
@@ -711,6 +720,68 @@ class Handler(BaseHTTPRequestHandler):
             {"pause": UISTATE.pause_batch, "resume": UISTATE.resume_control,
              "cancel": UISTATE.cancel_batch}[action](batch_no)
             return self._send(200, {"ok": True})
+        # ---- Osmosis 分配器（隔离扩展，_OSMOSIS 为 None 时整体不生效）----
+        if _OSMOSIS is not None:
+            if path == "/osmosis":
+                osm_html = HERE / "osmosis_ui.html"
+                return self._html(osm_html.read_text(encoding="utf-8")
+                                  if osm_html.exists()
+                                  else "<h1>osmosis_ui.html missing</h1>")
+            if path.startswith("/api/osmosis/"):
+                try:
+                    return self._osmosis_route(method, path)
+                except Exception as exc:
+                    logger.exception("osmosis route error: {}", exc)
+                    return self._send(500, {"error": f"osmosis internal error: {exc}"})
+        return self._send(404, {"error": "not found"})
+
+    def _osmosis_route(self, method, path):
+        parsed = urlparse(self.path)
+        q = parse_qs(parsed.query)
+        if path == "/api/osmosis/env" and method == "GET":
+            env = _OSMOSIS.probe_env(force=("force=1" in (q.get("force") or [])))
+            return self._send(200, env)
+        if path == "/api/osmosis/status" and method == "GET":
+            return self._send(200, _OSMOSIS.status_summary())
+        if path == "/api/osmosis/jobs":
+            if method == "GET":
+                return self._send(200, _OSMOSIS.list_jobs())
+            if method == "POST":
+                body = self._body()
+                if body is None:
+                    return self._send(400, {"error": "invalid json"})
+                code, resp = _OSMOSIS.start_job(body)
+                return self._send(code, resp)
+        m = re.match(r"^/api/osmosis/jobs/([A-Za-z0-9\-]+)/log$", path)
+        if m and method == "GET":
+            after = int((q.get("after") or ["0"])[0] or 0)
+            data = _OSMOSIS.job_log(m.group(1), after)
+            return self._send(404, {"error": "no such osmosis job"}) if data is None \
+                else self._send(200, data)
+        m = re.match(r"^/api/osmosis/jobs/([A-Za-z0-9\-]+)/cancel$", path)
+        if m and method == "POST":
+            data = _OSMOSIS.cancel_job(m.group(1))
+            return self._send(404, {"error": "no such osmosis job"}) if data is None \
+                else self._send(200, data)
+        m = re.match(r"^/api/osmosis/jobs/([A-Za-z0-9\-]+)$", path)
+        if m and method == "GET":
+            data = _OSMOSIS.get_job(m.group(1))
+            return self._send(404, {"error": "no such osmosis job"}) if data is None \
+                else self._send(200, data)
+        m = re.match(r"^/api/osmosis/report/([A-Za-z0-9_\-.]+\.csv)$", path)
+        if m and method == "GET":
+            fp = _OSMOSIS.report_file(m.group(1))
+            if fp is None:
+                return self._send(404, {"error": "report not found"})
+            body = fp.read_text(encoding="utf-8-sig")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/csv; charset=utf-8")
+            self.send_header("Content-Disposition",
+                             f'attachment; filename="{m.group(1)}"')
+            self.send_header("Content-Length", str(len(body.encode("utf-8"))))
+            self.end_headers()
+            self.wfile.write(body.encode("utf-8"))
+            return
         return self._send(404, {"error": "not found"})
 
     def _redirect(self, location):

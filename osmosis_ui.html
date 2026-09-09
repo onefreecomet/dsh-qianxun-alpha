@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Osmosis 分配器 · 千寻</title>
+<style>
+ /* 与主看板同源设计令牌；全部类名 osm- 前缀，绝不与 /ui 冲突 */
+ :root{--bg:#0f1115;--card:#171a21;--line:#2a2f3a;--fg:#e6e9ef;--dim:#8b93a3;
+       --ok:#3fb950;--run:#58a6ff;--warn:#d29922;--err:#f85149;--stop:#b979db;
+       --accent:#e3b341}
+ *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--fg);
+   font:14px/1.5 -apple-system,"PingFang SC","Microsoft YaHei",monospace}
+ header{padding:12px 20px;border-bottom:1px solid var(--line);display:flex;gap:14px;
+   align-items:center;position:sticky;top:0;background:var(--bg);z-index:5;flex-wrap:wrap}
+ header h1{font-size:16px;margin:0;color:var(--accent)}
+ header .sub{color:var(--dim);font-size:12px}
+ .chip{font-size:12px;padding:3px 10px;border-radius:20px;border:1px solid var(--line);color:var(--dim)}
+ .chip b{color:var(--fg)}
+ main{display:flex;gap:16px;padding:16px 20px;align-items:flex-start}
+ .col{flex:1;min-width:0} .col.wide{flex:1.8}
+ .card{background:var(--card);border:1px solid var(--line);border-radius:10px;
+       padding:12px 14px;margin-bottom:12px}
+ h2{font-size:13px;color:var(--dim);margin:0 0 8px;text-transform:uppercase;letter-spacing:.5px}
+ label{font-size:12px;color:var(--dim);display:block;margin:8px 0 3px}
+ input[type=text],input[type=number],select,textarea{width:100%;background:#0b0d11;color:var(--fg);
+   border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-size:12.5px;font-family:inherit}
+ textarea{font-family:ui-monospace,Menlo,monospace;font-size:12px;resize:vertical}
+ .row{display:flex;gap:10px} .row>*{flex:1}
+ button{background:#1f232c;color:var(--fg);border:1px solid var(--line);border-radius:6px;
+        padding:5px 12px;cursor:pointer;font-size:12.5px}
+ button:hover{border-color:var(--dim)} button:disabled{opacity:.45;cursor:not-allowed}
+ button.ok{color:var(--ok);border-color:#1e3b26} button.ok:hover{background:#0f2b18}
+ button.run{color:var(--run);border-color:#1c3a5e} button.run:hover{background:#12263f}
+ button.danger{color:var(--err);border-color:#4a2328} button.danger:hover{background:#3f1216}
+ button.armed{background:#3f1216;color:var(--err);border-color:var(--err);font-weight:700}
+ .state{padding:2px 8px;border-radius:20px;font-size:12px;white-space:nowrap}
+ .s-queued{background:#2a2f3a;color:var(--dim)} .s-running{background:#12263f;color:var(--run)}
+ .s-done{background:#0f2b18;color:var(--ok)} .s-cancelled{background:#291a3f;color:var(--stop)}
+ .s-error{background:#3f1216;color:var(--err)}
+ .meta{color:var(--dim);font-size:12px}
+ .hint{font-size:11.5px;color:var(--dim);margin-top:4px}
+ .toast{position:fixed;bottom:20px;right:20px;background:#1f4a3a;border:1px solid var(--ok);
+   color:var(--fg);padding:10px 14px;border-radius:8px;font-size:13px;display:none;z-index:99;max-width:60vw}
+ #osm-log{height:300px;overflow:auto;font-family:ui-monospace,Menlo,monospace;font-size:12px;
+   background:#0b0d11;border:1px solid var(--line);border-radius:8px;padding:8px;white-space:pre-wrap}
+ .stat{display:inline-block;margin:0 8px 4px 0;font-size:12px;padding:3px 10px;border-radius:12px;background:#20242e}
+ .stat .n{font-weight:700;color:var(--accent)}
+ table{width:100%;border-collapse:collapse;font-size:12px}
+ th{color:var(--dim);text-align:right;padding:4px 6px;border-bottom:1px solid var(--line);
+    white-space:nowrap;font-weight:600;position:sticky;top:0;background:var(--card)}
+ th.l,td.l{text-align:left}
+ td{padding:3px 6px;border-bottom:1px solid #1c2130;text-align:right;
+    font-family:ui-monospace,Menlo,monospace;white-space:nowrap}
+ tr:hover td{background:#1c2130}
+ td.aid{color:var(--ok);font-weight:600}
+ td.pts{color:var(--accent);font-weight:700}
+ .twrap{max-height:460px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+ .type-R{color:var(--run)} .type-S{color:var(--stop)}
+ .env-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+ .badge{display:inline-block;font-size:11px;padding:1px 6px;border-radius:10px}
+ .b-ok{background:#0f2b18;color:var(--ok)} .b-bad{background:#3f1216;color:var(--err)}
+ .b-dim{background:#22262f;color:var(--dim)}
+ .osmjob{display:flex;gap:10px;align-items:center;padding:7px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+ .osmjob:hover{background:#1c2130} .osmjob:last-child{border-bottom:none}
+ .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:50;
+        align-items:center;justify-content:center}
+ .modal .box{background:var(--card);border:1px solid var(--err);border-radius:10px;padding:18px;max-width:520px}
+ .modal h3{margin:0 0 8px;color:var(--err)}
+ .modal input{margin:8px 0}
+</style></head><body>
+<header>
+ <h1>Osmosis 分配器</h1>
+ <span class="chip">scope <b id="osmScope">—</b></span>
+ <span class="chip">运行时 <b id="osmEnvState">检测中…</b></span>
+ <span class="chip">任务 <b id="osmJobCount">0</b></span>
+ <span style="flex:1"></span>
+ <a href="/ui" style="color:var(--run);font-size:12.5px">← 返回主看板</a>
+ <span class="sub">隔离扩展 · 不影响回测功能</span>
+</header>
+<main>
+ <div class="col">
+  <div class="card"><h2>分配配置</h2>
+   <div class="row">
+    <div><label>region</label><select id="oRegion">
+      <option>USA</option><option>GLB</option><option>EUR</option><option>ASI</option>
+      <option>CHN</option><option>IND</option><option>GBR</option><option>AMR</option>
+      <option>DEU</option><option>MEA</option></select></div>
+    <div><label>delay</label><select id="oDelay"><option value="1" selected>1</option><option value="0">0</option></select></div>
+    <div><label>总点数 TOTAL_POINTS</label><input type="number" id="oTotal" value="100000" step="1000"></div>
+   </div>
+   <div class="row">
+    <div><label>目标券数</label><input type="number" id="oTarget" value="20"></div>
+    <div><label>最少券数</label><input type="number" id="oMinN" value="10"></div>
+    <div><label>最多券数</label><input type="number" id="oMaxN" value="25"></div>
+    <div><label>SUPER 点位占比</label><input type="number" id="oSuperShare" value="0.22" step="0.01"></div>
+   </div>
+   <div class="row">
+    <div><label>单券最少点位</label><input type="number" id="oMinPts" value="500" step="100"></div>
+    <div><label>REGULAR 单券上限</label><input type="number" id="oMaxReg" value="15000" step="500"></div>
+    <div><label>SUPER 单券上限</label><input type="number" id="oMaxSup" value="10000" step="500"></div>
+   </div>
+   <div class="row">
+    <div><label>组合内 PnL 相关上限</label><input type="number" id="oMaxPnlCorr" value="0.70" step="0.05"></div>
+    <div><label>软相关阈值</label><input type="number" id="oSoftCorr" value="0.45" step="0.05"></div>
+    <div><label>SELF_CORR 上限</label><input type="number" id="oSelfCorr" value="0.75" step="0.05"></div>
+    <div><label>PROD_CORR 上限</label><input type="number" id="oProdCorr" value="0.75" step="0.05"></div>
+   </div>
+   <div class="row">
+    <div><label>REGULAR min Sharpe</label><input type="number" id="oMinSharpe" value="1.20" step="0.05"></div>
+    <div><label>REGULAR min Fitness</label><input type="number" id="oMinFit" value="0.80" step="0.05"></div>
+    <div><label>REGULAR max 回撤</label><input type="number" id="oMaxDD" value="0.70" step="0.05"></div>
+   </div>
+   <div class="row">
+    <div><label>扫描上限 (alphas)</label><input type="number" id="oScan" value="1000" step="50"></div>
+    <div><label>每类预选数(recordset)</label><input type="number" id="oPre" value="80"></div>
+   </div>
+   <div class="row">
+    <div><label>提交日期≥ (可选 YYYY-MM-DD)</label><input type="text" id="oDateMin" placeholder=""></div>
+    <div><label>提交日期≤ (可选)</label><input type="text" id="oDateMax" placeholder=""></div>
+   </div>
+   <label>排除 alpha IDs（逗号/空格分隔，可选）</label>
+   <textarea id="oExclude" rows="2" placeholder="mNq38GW, qpzWgMV"></textarea>
+   <div class="hint">
+     <label style="display:inline-flex;align-items:center;gap:6px;margin-right:14px">
+       <input type="checkbox" id="oYearly" checked> 拉取 yearly-stats（慢）</label>
+     <label style="display:inline-flex;align-items:center;gap:6px;margin-right:14px">
+       <input type="checkbox" id="oPnlDiv" checked> 拉取 PnL 做多样性（慢）</label>
+     <label style="display:inline-flex;align-items:center;gap:6px">
+       <input type="checkbox" id="oClearFirst" checked> 写入前清空该 scope 现有点位</label>
+   </div>
+  </div>
+  <div class="card"><h2>运行控制</h2>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+     <button id="oBtnPreview" class="run">① 生成预演计划（只读）</button>
+     <button id="oBtnAllocate" class="danger">② 执行分配写入平台</button>
+     <button id="oBtnClear" class="danger">仅清空点位</button>
+     <button id="oBtnVerify">核查当前点位</button>
+     <button id="oBtnCancel" disabled>取消任务</button>
+   </div>
+   <div class="env-row" style="margin-top:8px">
+     <span class="badge b-dim" id="osmEnvDetail">环境未检测</span>
+     <button onclick="osmosisUI.probe(true)" style="padding:2px 8px">重新自检</button>
+   </div>
+   <div class="hint" id="oRunHint">预演 = 只读平台 + 生成计划 CSV，不写任何点位。
+     写入 = 清空(可选)后按计划 PATCH osmosisPoints，需二次确认。</div>
+   <div class="hint" id="oBusy" style="color:var(--warn)"></div>
+  </div>
+  <div class="card"><h2>实时日志</h2>
+   <div id="osm-log"><div class="meta">等待任务…</div></div>
+  </div>
+ </div>
+ <div class="col wide">
+  <div class="card"><h2>分配结果</h2>
+   <div id="oStats"><span class="meta">尚无结果 —— 先「生成预演计划」</span></div>
+   <div id="oResultWrap" class="twrap" style="display:none">
+     <table id="oTable"><thead></thead><tbody></tbody></table>
+   </div>
+   <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+     <button id="oBtnCsv" style="display:none">⬇ 下载完整报告 CSV</button>
+     <span class="meta" id="oCsvName"></span></div>
+  </div>
+  <div class="card"><h2>任务历史（点击加载）</h2><div id="oJobs"><div class="meta">加载中…</div></div></div>
+ </div>
+</main>
+<div class="toast" id="oToast"></div>
+<div class="modal" id="oModal"><div class="box">
+  <h3>⚠ 确认写入 Osmosis 点位</h3>
+  <div id="oModalBody" class="meta" style="line-height:1.7"></div>
+  <label style="margin-top:10px">输入 <b style="color:var(--err)">WRITE</b> 以解锁执行按钮</label>
+  <input type="text" id="oModalInput" placeholder="WRITE" autocomplete="off">
+  <div style="margin-top:12px;display:flex;gap:8px">
+    <button id="oModalGo" class="danger" disabled>确认执行</button>
+    <button onclick="osmosisUI.modalClose()">取消</button>
+  </div>
+</div></div>
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+const S={env:null,jobs:[],cur:null,logAfter:0,timer:null,pollTimer:null,armed:null};
+function esc(s){return (s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function num(v,d){if(v===null||v===undefined||v===''||isNaN(Number(v)))return d||'-';
+  return String(parseFloat(Number(v).toPrecision(3)))}
+function pct(v){if(v==null||isNaN(Number(v)))return '-';return (Number(v)*100).toFixed(1)+'%'}
+function int(v){if(v==null||isNaN(Number(v)))return '-';return Number(v).toLocaleString()}
+function toast(m){const t=$('#oToast');t.textContent=m;t.style.display='block';
+  clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',6000)}
+async function j(url,opt){const r=await fetch(url,opt);const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw Object.assign(new Error(d.error||('HTTP '+r.status)),{status:r.status,payload:d});return d}
+
+/* ---------- 配置 → settings payload ---------- */
+function buildSettings(){
+  const v=id=>$(id).value.trim();
+  const n=id=>{const x=parseFloat(v(id));return isNaN(x)?undefined:x};
+  const s={
+    region:v('#oRegion'),delay:parseInt(v('#oDelay'),10),
+    total_points:n('#oTotal'),target_alpha_count:n('#oTarget'),
+    min_alpha_count:n('#oMinN'),max_alpha_count:n('#oMaxN'),
+    super_point_share:n('#oSuperShare'),
+    min_points_per_alpha:n('#oMinPts'),
+    regular_max_points_per_alpha:n('#oMaxReg'),super_max_points_per_alpha:n('#oMaxSup'),
+    max_pnl_corr:n('#oMaxPnlCorr'),soft_pnl_corr:n('#oSoftCorr'),
+    regular_min_sharpe:n('#oMinSharpe'),regular_min_fitness:n('#oMinFit'),
+    regular_max_drawdown:n('#oMaxDD'),
+    max_alpha_scan:n('#oScan'),preselect_limit_per_type:n('#oPre'),
+    min_date_submitted:v('#oDateMin')||undefined,max_date_submitted:v('#oDateMax')||undefined,
+    exclude_alpha_ids:v('#oExclude')?v('#oExclude').split(/[\s,;]+/).filter(Boolean):[],
+    fetch_yearly_stats:$('#oYearly').checked,fetch_pnl_for_diversity:$('#oPnlDiv').checked,
+    clear_existing_first:$('#oClearFirst').checked,
+  };
+  $('#osmScope').textContent=s.region+'/D'+s.delay;
+  return s;
+}
+
+/* ---------- 环境 ---------- */
+async function probe(force){
+  try{S.env=await j('/api/osmosis/env'+(force?'?force=1':''));}catch(e){S.env={ok:false,error:e.message}}
+  const e=$('#osmEnvState'),d=$('#osmEnvDetail');
+  if(S.env.ok){
+    e.textContent='OK';
+    d.className='badge b-ok';
+    d.textContent=`pandas ${S.env.pandas} · allocator ${S.env.allocator_version} · 凭据 ${S.env.credentials&&S.env.credentials.found?'✓ '+S.env.credentials.source:'✗ 未找到(credential.txt)'}`;
+    if(S.env.defaults&&!$('#oTotal').dataset.touched){
+      $('#oTotal').value=S.env.defaults.total_points;}
+  }else{
+    e.textContent='不可用';d.className='badge b-bad';
+    d.textContent=S.env.error||'未知错误';
+  }
+}
+
+/* ---------- 任务 ---------- */
+async function startJob(mode,confirm){
+  const btns=['#oBtnPreview','#oBtnAllocate','#oBtnClear','#oBtnVerify'];
+  btns.forEach(b=>$(b).disabled=true);
+  try{
+    const r=await j('/api/osmosis/jobs',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({mode,settings:buildSettings(),confirm:!!confirm})});
+    toast(`任务已启动 ${r.job.id} (${mode})`);
+    selectJob(r.job.id);refreshJobs();
+  }catch(e){
+    if(e.status===409){$('#oBusy').textContent='⚠ '+e.message;}
+    toast('启动失败: '+e.message);
+  }finally{btns.forEach(b=>$(b).disabled=false);}
+}
+async function refreshJobs(){
+  try{const d=await j('/api/osmosis/jobs');S.jobs=d.jobs||[];
+    $('#osmJobCount').textContent=S.jobs.length;
+    $('#oBusy').textContent=d.running?'⏳ 有任务在运行…':'';
+    $('#oJobs').innerHTML=S.jobs.map(x=>{
+      const cls={queued:'s-queued',running:'s-running',done:'s-done',error:'s-error',cancelled:'s-cancelled'}[x.state]||'s-queued';
+      return `<div class="osmjob" onclick="osmosisUI.selectJob('${x.id}')">
+        <span class="state ${cls}">${x.state}</span>
+        <span class="chip">${x.mode}</span><b>${esc(x.scope||'')}</b>
+        <span class="meta">${x.id}</span><span style="flex:1"></span>
+        <span class="meta">${new Date((x.created_at||0)*1000).toLocaleTimeString()}</span>
+      </div>`}).join('')||'<div class="meta">暂无任务</div>';
+  }catch(e){}
+}
+function selectJob(id){
+  S.cur=id;S.logAfter=0;
+  $('#osm-log').innerHTML='<div class="meta">加载中…</div>';
+  $('#oStats').innerHTML='<span class="meta">加载中…</span>';
+  pollDetail();
+}
+async function pollDetail(){
+  if(!S.cur)return;
+  let d;
+  try{d=await j('/api/osmosis/jobs/'+S.cur);}catch(e){return}
+  const job=d.job||{};renderJob(job);
+  clearInterval(S.pollTimer);
+  if(job.state==='queued'||job.state==='running'){
+    S.pollTimer=setInterval(pollDetail,2000);
+  }
+}
+async function pollLogTail(){
+  if(!S.cur)return;
+  try{
+    const d=await j(`/api/osmosis/jobs/${S.cur}/log?after=${S.logAfter}`);
+    if(d.lines&&d.lines.length){
+      const el=$('#osm-log');
+      if(el.querySelector('.meta'))el.innerHTML='';
+      el.textContent+=d.lines.map(l=>l.line).join('\n')+'\n';
+      el.scrollTop=el.scrollHeight;S.logAfter=d.after;
+    }
+  }catch(e){}
+}
+function renderJob(job){
+  const cls={queued:'s-queued',running:'s-running',done:'s-done',error:'s-error',cancelled:'s-cancelled'}[job.state]||'s-queued';
+  $('#oBtnCancel').disabled=!(job.state==='queued'||job.state==='running');
+  const r=job.result;
+  let stats=`<span class="state ${cls}">${job.state}</span>
+    <span class="chip">${esc(job.mode||'')}</span>
+    <span class="chip">scope <b>${esc(job.scope||'')}</b></span>
+    <span class="chip">任务 <b>${esc(job.id)}</b></span>`;
+  if(job.error)stats+=` <span class="badge b-bad" title="${esc(job.error)}">${esc(job.error.slice(0,80))}</span>`;
+  if(r&&r.ok){
+    stats+=` <span class="stat">入选 <span class="n">${r.selected_count}</span> 券</span>
+      <span class="stat">总点位 <span class="n">${int(r.total_points)}</span></span>
+      <span class="stat">候选 <span class="n">${r.candidates??'-'}</span></span>
+      <span class="stat">写入 <span class="n">${r.written?'已执行':'否(预演)'}</span></span>`;
+    if(r.verify)stats+=`<span class="stat">平台余量 <span class="n">${int(r.verify.platform_sum)}</span> / ${r.verify.alphas_with_points}券</span>`;
+  }
+  $('#oStats').innerHTML=stats;
+  renderTable(r);
+  // CSV 按钮
+  if(r&&r.ok&&r.report_filename){
+    $('#oBtnCsv').style.display='';$('#oCsvName').textContent=r.report_filename;
+    $('#oBtnCsv').onclick=()=>window.open('/api/osmosis/report/'+encodeURIComponent(r.report_filename));
+  }else{$('#oBtnCsv').style.display='none';$('#oCsvName').textContent='';}
+}
+function renderTable(r){
+  const wrap=$('#oResultWrap'),thead=$('#oTable thead'),tbody=$('#oTable tbody');
+  if(!r||!r.ok||!r.selected||!r.selected.length){wrap.style.display='none';return}
+  const cols=[
+    ['alpha_id','alpha','l'],['type','类型','l'],['osmosis_new','点位',''],
+    ['adjusted_quality','质量',''],['sharpe','Sharpe',''],['fitness','Fit',''],
+    ['turnover','换手',''],['drawdown','回撤',''],['self_corr','selfC',''],
+    ['prod_corr','prodC',''],['universe','universe','l'],['neutralization','中性化','l'],
+    ['decay','decay',''],['selection_reason','来源','l'],['dateSubmitted','提交日','l']];
+  const fmt={osmosis_new:v=>int(v),adjusted_quality:v=>num(v),
+    sharpe:v=>num(v),fitness:v=>num(v),turnover:v=>pct(v),drawdown:v=>pct(v),
+    self_corr:v=>num(v),prod_corr:v=>num(v),decay:v=>num(v),
+    type:v=>v==='SUPER'?'<span class="type-S">SUPER</span>':'<span class="type-R">REG</span>',
+    dateSubmitted:v=>v?String(v).slice(0,10):'-'};
+  thead.innerHTML='<tr>'+cols.map(c=>`<th class="${c[2]}">${c[1]}</th>`).join('')+'</tr>';
+  let sum=0;
+  tbody.innerHTML=r.selected.map(row=>{
+    sum+=(Number(row.osmosis_new)||0);
+    return '<tr>'+cols.map(c=>{
+      const f=fmt[c[0]]||(v=>v==null?'-':esc(String(v)));
+      const cls=c[0]==='alpha_id'?' class="aid l"':(c[0]==='osmosis_new'?' class="pts"':(c[2]==='l'?' class="l"':''));
+      return `<td${cls}>${f(row[c[0]])}</td>`;}).join('')+'</tr>';
+  }).join('')+
+  `<tr><td class="l" style="font-weight:700">合计 ${r.selected.length} 券</td><td></td>
+   <td class="pts">${int(sum)}</td><td colspan="11"></td></tr>`;
+  wrap.style.display='';
+}
+
+/* ---------- 写入二次确认 ---------- */
+function armAllocate(){
+  const s=buildSettings();
+  $('#oModalBody').innerHTML=
+    `即将对 <b style="color:var(--fg)">${esc(s.region)}/D${s.delay}</b> 执行真实 Osmosis 写入：<br>`+
+    `· 总点位 <b style="color:var(--accent)">${int(s.total_points)}</b>，目标 ${s.target_alpha_count} 券<br>`+
+    `· ${$('#oClearFirst').checked?'将<b style="color:var(--err)">先清空</b>该 scope 现有点位':'不清空现有点位（可能与旧点位叠加）'}<br>`+
+    `· 每券 PATCH osmosisPoints，失败点数自动再分配<br>`+
+    `<span style="color:var(--err)">此操作直接改平台数据，无法一键撤销。</span>`;
+  $('#oModal').style.display='flex';
+  $('#oModalInput').value='';$('#oModalGo').disabled=true;
+  $('#oModalInput').focus();
+}
+function modalClose(){$('#oModal').style.display='none'}
+function modalCheck(){
+  $('#oModalGo').disabled=$('#oModalInput').value.trim().toUpperCase()!=='WRITE';
+}
+function modalGo(){
+  modalClose();
+  startJob('allocate',true);
+}
+
+/* ---------- 清空二次确认 ---------- */
+function armClear(){
+  const s=buildSettings();
+  if(!window.confirm(`确定清空 ${s.region}/D${s.delay} 的全部现有 Osmosis 点位？\n此操作直接 PATCH osmosisPoints=null，无法一键撤销。`))return;
+  startJob('clear',true);
+}
+
+/* ---------- 绑定 ---------- */
+$('#oBtnPreview').onclick=()=>startJob('preview',false);
+$('#oBtnVerify').onclick=()=>startJob('verify',false);
+$('#oBtnAllocate').onclick=armAllocate;
+$('#oBtnClear').onclick=armClear;
+$('#oBtnCancel').onclick=async()=>{if(S.cur&&window.confirm('取消当前任务？')){
+  await j(`/api/osmosis/jobs/${S.cur}/cancel`,{method:'POST',body:'{}'}).catch(()=>{});pollDetail();}};
+$('#oModalInput').oninput=modalCheck;
+$('#oModalGo').onclick=modalGo;
+$('#oTotal').addEventListener('input',e=>e.target.dataset.touched='1');
+window.osmosisUI={selectJob,probe,modalClose,buildSettings,S};
+
+/* ---------- 启动 ---------- */
+probe(false);refreshJobs();
+setInterval(refreshJobs,5000);
+setInterval(pollLogTail,1500);
+})();
+</script></body></html>

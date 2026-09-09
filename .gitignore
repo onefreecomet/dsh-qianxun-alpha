@@ -30,3 +30,7 @@ Thumbs.db
 # 虚拟环境
 .venv/
 venv/
+
+# Osmosis 运行产物（报告含真实 alpha_id/信号构成 —— 严禁入库；源码除外）
+osmosis_runs/
+osmosis_report_*.csv
