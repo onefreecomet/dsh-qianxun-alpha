@@ -1,0 +1,22 @@
+{
+  "extends": "../../../tsconfig.base.client.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    // 本包同时有 Node 半区（src/index.ts：提示词服务端存储 + webServer 路由），
+    // 需要 node: 内建模块与 process/Buffer 的环境类型；tsconfig.base.client.json
+    // 默认 types: []，按该文件注释的约定「需要者就地覆盖」。
+    "types": ["node"]
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../client/runtime"
+    }
+  ]
+}

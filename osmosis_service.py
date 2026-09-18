@@ -64,13 +64,11 @@ _ENV_LOCK = threading.Lock()
 # 凭据只经环境变量传给 runner 子进程，不落日志、不进任何持久化文件。
 _CRED_GETTER = None
 
-
 def configure(cred_getter=None) -> None:
     """qianxund 启动时注入凭据读取函数（可选）。"""
     global _CRED_GETTER
     if cred_getter is not None:
         _CRED_GETTER = cred_getter
-
 
 def _runner_env() -> dict:
     env = dict(os.environ)
@@ -87,18 +85,15 @@ def _runner_env() -> dict:
             pass
     return env
 
-
 # --------------------------------------------------------------- helpers ----
 def _now() -> float:
     return time.time()
-
 
 def _runner_python() -> str | None:
     for cand in RUNNER_PY_CANDIDATES:
         if Path(cand).exists():
             return cand
     return None
-
 
 def _sanitize_settings(settings: dict | None) -> dict:
     clean: dict = {}
@@ -107,7 +102,6 @@ def _sanitize_settings(settings: dict | None) -> dict:
             continue
         clean[str(key)] = value
     return clean
-
 
 def _public(job: dict, with_log: bool = False) -> dict:
     out = {k: v for k, v in job.items()
@@ -118,7 +112,6 @@ def _public(job: dict, with_log: bool = False) -> dict:
         out["log_lines"] = len(job.get("log", []))
     return out
 
-
 def _save_state() -> None:
     try:
         with _JOBS_LOCK:
@@ -126,7 +119,6 @@ def _save_state() -> None:
         STATE_FILE.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     except Exception:
         pass
-
 
 def _load_state() -> None:
     if not STATE_FILE.exists():
@@ -144,13 +136,11 @@ def _load_state() -> None:
     except Exception:
         pass
 
-
 def _append_log(job: dict, line: str) -> None:
     buf = job["log"]
     buf.append({"n": len(buf) + 1, "line": line.rstrip("\n")})
     if len(buf) > LOG_KEEP:
         del buf[: len(buf) - LOG_KEEP]
-
 
 # ------------------------------------------------------------ subprocess ----
 def _pump_stderr(job: dict, proc: subprocess.Popen) -> None:
@@ -162,7 +152,6 @@ def _pump_stderr(job: dict, proc: subprocess.Popen) -> None:
                 _append_log(job, raw)
     except Exception:
         pass
-
 
 def _finalize(job: dict, code: int) -> None:
     job["exit_code"] = code
@@ -177,7 +166,6 @@ def _finalize(job: dict, code: int) -> None:
             tail = " ".join(l["line"] for l in job["log"][-6:])[:300]
             job["error"] = f"runner 退出码 {code}" + (f": {tail}" if tail else "")
     _save_state()
-
 
 def _execute(job: dict, payload: dict) -> None:
     py = _runner_python()
@@ -254,7 +242,6 @@ def _execute(job: dict, payload: dict) -> None:
         job["error"] = "runner 未输出结果行（异常崩溃？）"
     _finalize(job, code)
 
-
 # -------------------------------------------------------------- public ----
 def probe_env(force: bool = False) -> dict:
     """探测 runner 运行时（pandas / allocator / 凭据存在性）。结果缓存。"""
@@ -290,7 +277,6 @@ def probe_env(force: bool = False) -> dict:
             info.update({"ok": False, "error": str(exc)[:300]})
         _ENV_CACHE = info
         return info
-
 
 def start_job(body: dict) -> tuple[int, dict]:
     """启动一个 osmosis 任务。返回 (http_status, payload)。"""
@@ -339,13 +325,11 @@ def start_job(body: dict) -> tuple[int, dict]:
     threading.Thread(target=_work, daemon=True, name=f"osmosis-{jid}").start()
     return 202, {"job": _public(job)}
 
-
 def list_jobs() -> dict:
     with _JOBS_LOCK:
         jobs = [_public(j) for j in _JOBS.values()]
     jobs.sort(key=lambda x: x.get("created_at") or 0, reverse=True)
     return {"jobs": jobs, "running": sum(1 for j in jobs if j.get("state") in ("queued", "running"))}
-
 
 def get_job(job_id: str) -> dict | None:
     with _JOBS_LOCK:
@@ -353,7 +337,6 @@ def get_job(job_id: str) -> dict | None:
         if job is None:
             return None
         return {"job": _public(job, with_log=True)}
-
 
 def job_log(job_id: str, after: int = 0) -> dict | None:
     with _JOBS_LOCK:
@@ -364,7 +347,6 @@ def job_log(job_id: str, after: int = 0) -> dict | None:
         lines = [l for l in buf if l["n"] > after][-800:]
         return {"lines": lines, "after": buf[-1]["n"] if buf else after,
                 "state": job["state"]}
-
 
 def cancel_job(job_id: str) -> dict | None:
     with _JOBS_LOCK:
@@ -383,14 +365,12 @@ def cancel_job(job_id: str) -> dict | None:
         _append_log(job, "[service] 收到取消请求")
         return {"ok": True}
 
-
 def report_file(filename: str) -> Path | None:
     """安全返回 osmosis_report_*.csv 路径（防路径穿越）。"""
     if not re.fullmatch(r"osmosis_report_[A-Za-z0-9_\-]+\.csv", filename):
         return None
     path = HERE / filename
     return path if path.exists() else None
-
 
 def status_summary() -> dict:
     env = probe_env()
@@ -399,6 +379,5 @@ def status_summary() -> dict:
         total = len(_JOBS)
     return {"env_ok": bool(env.get("ok")), "running": running, "total_jobs": total,
             "modes": list(MODES), "write_modes": sorted(WRITE_MODES)}
-
 
 _load_state()

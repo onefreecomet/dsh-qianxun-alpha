@@ -35,9 +35,7 @@ from typing import Any, Iterable, Optional
 import pandas as pd
 import requests
 
-
 SCRIPT_VERSION = "2026-08-28-Webinar"
-
 
 # =============================================================================
 # User settings. In normal use, only change these two.
@@ -53,7 +51,6 @@ _DEFAULT_DELAY = TARGET_DELAY
 # Optional: put known non-compensated or unwanted alpha IDs here.
 # Example: EXCLUDE_ALPHA_IDS = {"mNq38GW", "qpzWgMV"}
 EXCLUDE_ALPHA_IDS: set[str] = set()
-
 
 # =============================================================================
 # Operation settings.
@@ -92,7 +89,6 @@ ALPHA_DETAIL_FETCH_LIMIT = 500
 # endpoints for top candidates. If list/detail payload already contains these
 # fields, they are used without extra calls.
 FETCH_EXTERNAL_CORRELATIONS = False
-
 
 # =============================================================================
 # Selection and scoring settings.
@@ -134,11 +130,9 @@ PATCH_RETRY_STATUS_CODES = {408, 409, 425, 429, 500, 502, 503, 504}
 RETRY_BAD_REQUEST_PATCH = False
 REDISTRIBUTE_FAILED_POINTS = True
 
-
 BASE_URL = "https://api.worldquantbrain.com"
 SCRIPT_DIR = Path(__file__).resolve().parent
 CONFIG_FILENAME = "user_config.json"
-
 
 @dataclass
 class PatchResult:
@@ -148,22 +142,17 @@ class PatchResult:
     ok: bool
     error: str = ""
 
-
 def now_stamp() -> str:
     return datetime.now().strftime("%Y%m%d_%H%M%S")
-
 
 def clean_region(region: Any) -> str:
     return str(region).strip().upper()
 
-
 def clean_delay(delay: Any) -> int:
     return int(str(delay).strip())
 
-
 def scope_name(region: str, delay: int) -> str:
     return f"{clean_region(region)}/D{clean_delay(delay)}"
-
 
 def to_float(value: Any, default: float = math.nan) -> float:
     if value is None:
@@ -176,13 +165,11 @@ def to_float(value: Any, default: float = math.nan) -> float:
         return default
     return result
 
-
 def to_int(value: Any, default: int = 0) -> int:
     try:
         return int(value)
     except (TypeError, ValueError):
         return default
-
 
 def nested_get(obj: dict[str, Any], path: Iterable[str], default: Any = None) -> Any:
     cur: Any = obj
@@ -192,13 +179,11 @@ def nested_get(obj: dict[str, Any], path: Iterable[str], default: Any = None) ->
         cur = cur.get(key)
     return default if cur is None else cur
 
-
 def first_present(obj: dict[str, Any], names: Iterable[str]) -> Any:
     for name in names:
         if name in obj and obj[name] is not None:
             return obj[name]
     return None
-
 
 def unique_paths(paths: Iterable[Path]) -> list[Path]:
     seen: set[str] = set()
@@ -209,7 +194,6 @@ def unique_paths(paths: Iterable[Path]) -> list[Path]:
             seen.add(resolved)
             result.append(path)
     return result
-
 
 def credential_file_candidates() -> list[Path]:
     env_config = os.environ.get("BRAIN_CONFIG_FILE")
@@ -235,13 +219,11 @@ def credential_file_candidates() -> list[Path]:
         )
     return unique_paths(candidates)
 
-
 def _strip_quoted(value: Any) -> str:
     text = str(value).strip()
     if len(text) >= 2 and text[0] in ("'", '"') and text[-1] == text[0]:
         return text[1:-1]
     return text
-
 
 def credentials_from_mapping(data: dict[str, Any]) -> Optional[tuple[str, str]]:
     blocks: list[dict[str, Any]] = [data]
@@ -262,7 +244,6 @@ def credentials_from_mapping(data: dict[str, Any]) -> Optional[tuple[str, str]]:
             return _strip_quoted(username), _strip_quoted(password)
     return None
 
-
 def credentials_from_colon_text(text: str) -> Optional[tuple[str, str]]:
     data: dict[str, str] = {}
     for raw_line in text.splitlines():
@@ -272,7 +253,6 @@ def credentials_from_colon_text(text: str) -> Optional[tuple[str, str]]:
         key, value = line.split(":", 1)
         data[key.strip()] = _strip_quoted(value.strip())
     return credentials_from_mapping(data)
-
 
 def load_credentials_from_file(path: Path) -> Optional[tuple[str, str]]:
     text = path.read_text(encoding="utf-8").strip()
@@ -288,7 +268,6 @@ def load_credentials_from_file(path: Path) -> Optional[tuple[str, str]]:
         return None
 
     return credentials_from_colon_text(text)
-
 
 def load_credentials() -> tuple[str, str]:
     env_email = os.environ.get("BRAIN_EMAIL") or os.environ.get("BRAIN_USERNAME")
@@ -312,7 +291,6 @@ def load_credentials() -> tuple[str, str]:
         "or {\"credentials\":{\"email\":\"...\",\"password\":\"...\"}}. "
         f"Checked {len(checked)} paths; first paths: {checked[:5]}"
     )
-
 
 def authenticate() -> requests.Session:
     username, password = load_credentials()
@@ -350,7 +328,6 @@ def authenticate() -> requests.Session:
     raise RuntimeError(
         f"Authentication failed: HTTP {response.status_code} {response.text[:300]}"
     )
-
 
 def retry_wait_seconds(retry_after: Optional[str], fallback: float) -> float:
     if not retry_after or retry_after in ("0", "0.0"):
@@ -409,7 +386,6 @@ def request_json(
         raise last_error
     return None
 
-
 def response_error_summary(response: requests.Response) -> str:
     text = (response.text or "").strip()
     if not text:
@@ -427,7 +403,6 @@ def response_error_summary(response: requests.Response) -> str:
         return f"HTTP {response.status_code}: {payload}"
     except Exception:
         return f"HTTP {response.status_code}: {text[:500]}"
-
 
 def patch_osmosis_points(
     session: requests.Session,
@@ -486,7 +461,6 @@ def patch_osmosis_points(
 
     return PatchResult(alpha_id, points, None, False, last_error or "unknown patch error")
 
-
 def alpha_query_params(
     region: str,
     delay: int,
@@ -521,7 +495,6 @@ def alpha_query_params(
     if use_date_filter and MAX_DATE_SUBMITTED:
         params.append(("dateSubmitted<", f"{MAX_DATE_SUBMITTED}T00:00:00-04:00"))
     return params
-
 
 def fetch_scope_alphas(
     session: requests.Session,
@@ -565,7 +538,6 @@ def fetch_scope_alphas(
 
     return rows[:max_alpha_scan]
 
-
 def fetch_scope_alphas_all_visibility(
     session: requests.Session,
     region: str,
@@ -600,7 +572,6 @@ def fetch_scope_alphas_all_visibility(
                 by_id[alpha_id] = record
     return list(by_id.values())
 
-
 def alpha_code_blob(record: dict[str, Any]) -> str:
     parts: list[str] = []
     for key in ("regular", "combo", "selection"):
@@ -612,7 +583,6 @@ def alpha_code_blob(record: dict[str, Any]) -> str:
         elif value:
             parts.append(str(value))
     return "\n".join(parts)
-
 
 def alpha_signature(record: dict[str, Any]) -> str:
     settings = record.get("settings") or {}
@@ -643,7 +613,6 @@ def alpha_signature(record: dict[str, Any]) -> str:
     ]
     return "|".join(basis + top_tokens)
 
-
 def extract_alpha_type(record: dict[str, Any]) -> str:
     raw = str(record.get("type") or "").upper()
     if raw in ("REGULAR", "SUPER"):
@@ -651,7 +620,6 @@ def extract_alpha_type(record: dict[str, Any]) -> str:
     if record.get("combo") or record.get("selection"):
         return "SUPER"
     return "REGULAR"
-
 
 def extract_corr(record: dict[str, Any], kind: str) -> float:
     if kind == "self":
@@ -693,7 +661,6 @@ def extract_corr(record: dict[str, Any], kind: str) -> float:
 
     return math.nan
 
-
 METRIC_KEYS = (
     "sharpe",
     "fitness",
@@ -705,7 +672,6 @@ METRIC_KEYS = (
     "shortCount",
 )
 
-
 def first_metric_block(record: dict[str, Any], names: Iterable[str]) -> dict[str, Any]:
     for name in names:
         value = record.get(name)
@@ -713,13 +679,11 @@ def first_metric_block(record: dict[str, Any], names: Iterable[str]) -> dict[str
             return value
     return {}
 
-
 def metric_block_has_core_values(data: dict[str, Any]) -> bool:
     for key in ("sharpe", "fitness", "returns", "margin", "turnover", "drawdown"):
         if not math.isnan(to_float(data.get(key))):
             return True
     return False
-
 
 def choose_metric_blocks(record: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], str]:
     is_data = first_metric_block(record, ("is", "IS", "inSample", "in_sample"))
@@ -729,18 +693,15 @@ def choose_metric_blocks(record: dict[str, Any]) -> tuple[dict[str, Any], dict[s
         return os_data, is_data, os_data, "OS"
     return is_data, is_data, os_data, "IS"
 
-
 def preferred_metric(preferred: dict[str, Any], fallback: dict[str, Any], key: str) -> float:
     value = to_float(preferred.get(key))
     if not math.isnan(value):
         return value
     return to_float(fallback.get(key))
 
-
 def record_has_os_metrics(record: dict[str, Any]) -> bool:
     os_data = first_metric_block(record, ("os", "OS", "outOfSample", "out_of_sample", "oos", "OOS"))
     return metric_block_has_core_values(os_data)
-
 
 def enrich_records_with_alpha_details_for_os(
     session: requests.Session,
@@ -793,7 +754,6 @@ def enrich_records_with_alpha_details_for_os(
         )
     return enriched
 
-
 def flatten_alpha(record: dict[str, Any]) -> dict[str, Any]:
     settings = record.get("settings") or {}
     metric_data, is_data, os_data, metric_source = choose_metric_blocks(record)
@@ -845,7 +805,6 @@ def flatten_alpha(record: dict[str, Any]) -> dict[str, Any]:
         "raw": record,
     }
 
-
 def rank01(series: pd.Series, higher_is_better: bool = True) -> pd.Series:
     values = pd.to_numeric(series, errors="coerce")
     if values.notna().sum() <= 1:
@@ -855,7 +814,6 @@ def rank01(series: pd.Series, higher_is_better: bool = True) -> pd.Series:
     # higher_is_better=False -> smallest gets 1.0
     ranked = values.rank(pct=True, ascending=higher_is_better)
     return ranked.fillna(0.5).clip(0.0, 1.0)
-
 
 def turnover_quality(value: Any) -> float:
     tv = to_float(value)
@@ -871,7 +829,6 @@ def turnover_quality(value: Any) -> float:
         return max(0.35, tv / 0.01 * 0.75)
     return max(0.20, 0.55 - min(tv - 0.60, 1.0) * 0.35)
 
-
 def corr_quality(row: pd.Series) -> float:
     vals = [
         to_float(row.get("self_corr")),
@@ -882,7 +839,6 @@ def corr_quality(row: pd.Series) -> float:
         return 0.65
     worst = max(abs(v) for v in vals)
     return max(0.0, 1.0 - worst)
-
 
 def add_base_scores(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
@@ -944,7 +900,6 @@ def add_base_scores(df: pd.DataFrame) -> pd.DataFrame:
     scored["base_quality_score"] = scored["base_quality_score"].clip(0.0, 1.0)
     return scored
 
-
 def add_filter_reasons(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
         return df
@@ -995,13 +950,11 @@ def add_filter_reasons(df: pd.DataFrame) -> pd.DataFrame:
 
     return out
 
-
 def apply_hard_filters(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
         return df
     out = add_filter_reasons(df)
     return out[out["filter_reason"] == ""].copy()
-
 
 def payload_to_dataframe(payload: Any) -> pd.DataFrame:
     if payload is None:
@@ -1015,7 +968,6 @@ def payload_to_dataframe(payload: Any) -> pd.DataFrame:
                 return pd.DataFrame(value)
         return pd.DataFrame([payload])
     return pd.DataFrame()
-
 
 def fetch_recordset(
     session: requests.Session,
@@ -1031,7 +983,6 @@ def fetch_recordset(
         )
     except Exception:
         return None
-
 
 def parse_pnl_series(payload: Any) -> pd.Series:
     df = payload_to_dataframe(payload)
@@ -1076,7 +1027,6 @@ def parse_pnl_series(payload: Any) -> pd.Series:
         return series.dropna()
     return daily
 
-
 def parse_year_score(payload: Any) -> float:
     df = payload_to_dataframe(payload)
     if df.empty:
@@ -1110,7 +1060,6 @@ def parse_year_score(payload: Any) -> float:
         + 0.20 * trend_score
     )
 
-
 def recursive_corr_values(obj: Any) -> list[float]:
     vals: list[float] = []
     if isinstance(obj, dict):
@@ -1126,7 +1075,6 @@ def recursive_corr_values(obj: Any) -> list[float]:
             vals.extend(recursive_corr_values(item))
     return vals
 
-
 def fetch_external_corr(session: requests.Session, alpha_id: str, kind: str) -> float:
     endpoint = "self" if kind == "self" else "prod"
     try:
@@ -1135,7 +1083,6 @@ def fetch_external_corr(session: requests.Session, alpha_id: str, kind: str) -> 
         return math.nan
     vals = recursive_corr_values(payload)
     return max(vals) if vals else math.nan
-
 
 def enrich_top_candidates(session: requests.Session, df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
@@ -1177,7 +1124,6 @@ def enrich_top_candidates(session: requests.Session, df: pd.DataFrame) -> pd.Dat
     rescored["pnl_series"] = rescored["alpha_id"].map(pnl_map)
     return rescored
 
-
 def build_corr_matrix(df: pd.DataFrame) -> pd.DataFrame:
     series_map: dict[str, pd.Series] = {}
     for _, row in df.iterrows():
@@ -1195,14 +1141,12 @@ def build_corr_matrix(df: pd.DataFrame) -> pd.DataFrame:
         return pd.DataFrame()
     return aligned.corr().abs().fillna(0.0)
 
-
 def code_similarity(sig_a: str, sig_b: str) -> float:
     set_a = set(str(sig_a).split("|"))
     set_b = set(str(sig_b).split("|"))
     if not set_a or not set_b:
         return 0.0
     return len(set_a & set_b) / len(set_a | set_b)
-
 
 def max_selected_corr(
     row: pd.Series,
@@ -1224,7 +1168,6 @@ def max_selected_corr(
         else:
             vals.append(code_similarity(row.get("code_signature"), sel.get("code_signature")))
     return max(vals) if vals else 0.0
-
 
 def greedy_select(
     df: pd.DataFrame,
@@ -1266,7 +1209,6 @@ def greedy_select(
     result["selection_rank"] = range(1, len(result) + 1)
     return result
 
-
 def choose_type_counts(df: pd.DataFrame) -> tuple[int, int]:
     regular_available = int((df["type"] == "REGULAR").sum())
     super_available = int((df["type"] == "SUPER").sum())
@@ -1299,7 +1241,6 @@ def choose_type_counts(df: pd.DataFrame) -> tuple[int, int]:
 
     return regular_target, super_target
 
-
 def select_portfolio(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
         return df
@@ -1329,7 +1270,6 @@ def select_portfolio(df: pd.DataFrame) -> pd.DataFrame:
     ).reset_index(drop=True)
     selected["selection_reason"] = "primary"
     return selected
-
 
 def relaxed_fill_candidates(all_scored: pd.DataFrame, selected: pd.DataFrame) -> pd.DataFrame:
     if all_scored.empty:
@@ -1378,7 +1318,6 @@ def relaxed_fill_candidates(all_scored: pd.DataFrame, selected: pd.DataFrame) ->
         ["relaxed_pass", "fill_sort_score", "base_quality_score"],
         ascending=[False, False, False],
     )
-
 
 def ensure_minimum_selection(selected: pd.DataFrame, all_scored: pd.DataFrame) -> pd.DataFrame:
     if not FILL_TO_MIN_ALPHA_COUNT or len(selected) >= MIN_ALPHA_COUNT:
@@ -1447,7 +1386,6 @@ def ensure_minimum_selection(selected: pd.DataFrame, all_scored: pd.DataFrame) -
     )
     return out
 
-
 def largest_remainder(weights: list[float], total: int) -> list[int]:
     if not weights:
         return []
@@ -1470,7 +1408,6 @@ def largest_remainder(weights: list[float], total: int) -> list[int]:
     for i in range(remain):
         floors[order[i % len(order)]] += 1
     return floors
-
 
 def allocate_with_caps(
     weights: list[float],
@@ -1548,14 +1485,12 @@ def allocate_with_caps(
         allocated[-1] += total - sum(allocated)
     return allocated
 
-
 def rank_decay_weights(n: int) -> list[float]:
     if n <= 0:
         return []
     if n == 1:
         return [1.0]
     return [math.exp(-i / max(3.0, n / 3.0)) for i in range(n)]
-
 
 def add_points(selected: pd.DataFrame) -> pd.DataFrame:
     if selected.empty:
@@ -1608,7 +1543,6 @@ def add_points(selected: pd.DataFrame) -> pd.DataFrame:
 
     return out.sort_values("osmosis_new", ascending=False).reset_index(drop=True)
 
-
 def allocation_report_columns(df: pd.DataFrame) -> pd.DataFrame:
     keep = [
         "alpha_id",
@@ -1648,7 +1582,6 @@ def allocation_report_columns(df: pd.DataFrame) -> pd.DataFrame:
     existing = [c for c in keep if c in df.columns]
     return df[existing].copy()
 
-
 def write_report(all_df: pd.DataFrame, selected: pd.DataFrame) -> Path:
     stamp = now_stamp()
     report_path = SCRIPT_DIR / (
@@ -1661,7 +1594,6 @@ def write_report(all_df: pd.DataFrame, selected: pd.DataFrame) -> Path:
     all_out["osmosis_new"] = all_out["alpha_id"].map(selected_points).fillna(0).astype(int)
     all_out.to_csv(report_path, index=False, encoding="utf-8-sig")
     return report_path
-
 
 def print_plan(selected: pd.DataFrame, report_path: Path) -> None:
     print()
@@ -1703,7 +1635,6 @@ def print_plan(selected: pd.DataFrame, report_path: Path) -> None:
                 table[col] = pd.to_numeric(table[col], errors="coerce").round(4)
         print(table.to_string(index=False))
         print()
-
 
 def print_super_audit(all_df: pd.DataFrame, selected: pd.DataFrame, top_n: int = 15) -> None:
     if all_df.empty or "type" not in all_df.columns:
@@ -1753,13 +1684,11 @@ def print_super_audit(all_df: pd.DataFrame, selected: pd.DataFrame, top_n: int =
     print(display.to_string(index=False))
     print()
 
-
 def confirm(prompt: str) -> bool:
     if not CONFIRM_BEFORE_WRITE:
         return True
     answer = input(f"{prompt} Type y/yes to continue: ").strip().lower()
     return answer in {"y", "yes"}
-
 
 def clear_existing_points(session: requests.Session) -> None:
     print(f"Fetching current scored alphas in {scope_name(TARGET_REGION, TARGET_DELAY)}...")
@@ -1805,7 +1734,6 @@ def clear_existing_points(session: requests.Session) -> None:
             print(f"failed: {result.error[:160]}")
     print(f"Clear done. ok={ok}, failed={failed}")
 
-
 def verify_current_scope_points(
     session: requests.Session,
     selected_ids: Optional[set[str]] = None,
@@ -1844,7 +1772,6 @@ def verify_current_scope_points(
             f"WARNING: platform sum is {total:,}, expected {TOTAL_POINTS:,}. "
             "Run ACTION='clear' if residual points remain, then allocate again."
         )
-
 
 def write_allocation(session: requests.Session, selected: pd.DataFrame) -> None:
     if selected.empty:
@@ -1939,7 +1866,6 @@ def write_allocation(session: requests.Session, selected: pd.DataFrame) -> None:
     print(f"Write done. first_pass_ok={ok}, first_pass_failed={failed}")
     verify_current_scope_points(session, set(selected["alpha_id"].astype(str)))
 
-
 def build_allocation_plan(session: requests.Session) -> tuple[pd.DataFrame, pd.DataFrame, Path]:
     print(f"Fetching candidates in {scope_name(TARGET_REGION, TARGET_DELAY)}...")
     records = fetch_scope_alphas(
@@ -1986,7 +1912,6 @@ def build_allocation_plan(session: requests.Session) -> tuple[pd.DataFrame, pd.D
 
     report_path = write_report(all_for_fill, selected)
     return all_for_fill, selected, report_path
-
 
 def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -2037,7 +1962,6 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     )
     return parser.parse_args(argv)
 
-
 def apply_cli_overrides(args: argparse.Namespace) -> None:
     """Rebind the settings globals. Every consumer reads them at call time.
 
@@ -2054,7 +1978,6 @@ def apply_cli_overrides(args: argparse.Namespace) -> None:
         ACTION = "preview"
         WRITE_TO_PLATFORM = False
 
-
 def validate_settings() -> None:
     action = ACTION.lower().strip()
     if action not in ("allocate", "clear", "preview"):
@@ -2065,7 +1988,6 @@ def validate_settings() -> None:
         raise ValueError("MIN_ALPHA_COUNT must be <= MAX_ALPHA_COUNT")
     if not (0.0 <= SUPER_POINT_SHARE <= 0.50):
         raise ValueError("SUPER_POINT_SHARE should be between 0 and 0.50")
-
 
 def main(argv: Optional[list[str]] = None) -> int:
     apply_cli_overrides(parse_args(argv))
@@ -2095,7 +2017,6 @@ def main(argv: Optional[list[str]] = None) -> int:
         clear_existing_points(session)
     write_allocation(session, selected)
     return 0
-
 
 if __name__ == "__main__":
     try:

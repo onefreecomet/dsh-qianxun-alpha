@@ -1,0 +1,1 @@
+{"version":3,"file":"AlphaPoolCard.d.ts","sourceRoot":"","sources":["../../../src/client/AlphaPoolCard.tsx"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;;;;;;;GAmBG;AAgKH,MAAM,WAAW,kBAAkB;IACjC,4CAA4C;IAC5C,OAAO,CAAC,EAAE,OAAO,CAAA;IACjB,qDAAqD;IACrD,SAAS,CAAC,EAAE,CAAC,OAAO,EAAE,MAAM,KAAK,IAAI,CAAA;CACtC;AAED,wBAAgB,aAAa,CAAC,KAAK,EAAE,kBAAkB,GAAG,GAAG,CAAC,OAAO,CAulBpE"}

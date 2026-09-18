@@ -34,3 +34,15 @@ venv/
 # Osmosis 运行产物（报告含真实 alpha_id/信号构成 —— 严禁入库；源码除外）
 osmosis_runs/
 osmosis_report_*.csv
+
+# ARC 回测扩展 —— 从第三方「ARC 回测交付包」移植（见 arc_service.py 头部），
+# 仅本地使用，**不对外分发**。本仓库是 public，所以这几个文件永不入库。
+# （qianxund.py 里对 ARC 的接线是隔离扩展模式：import 失败只打印告警并禁用，
+#  因此缺这几个文件时引擎功能完整、只是没有 /arc 页面。）
+arc_service.py
+arc_runner.py
+arc_ui.html
+
+# 本地改造前快照（*.bak / *.bak_*），永不入库
+*.bak
+*.bak_*

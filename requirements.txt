@@ -1,10 +1,4 @@
-# 千寻 headless CLI（Mac 移植版）依赖
+# 千寻引擎依赖（devkit 版；修正 loguru 版本约束 —— PyPI 最高 0.7.x，原 >=2.7 从未存在）
 
 httpx>=0.27
-loguru>=2.7
-
-# 安装：
-#   python3 -m venv .venv && source .venv/bin/activate
-#   pip install -r requirements.txt
-# 或直接：
-#   pip3 install httpx loguru
+loguru>=0.7.0

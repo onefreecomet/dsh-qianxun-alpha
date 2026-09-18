@@ -1,6 +1,6 @@
 # 千寻回测 (Qianxun Backtest)
 
-WorldQuant BRAIN 回测引擎的**本地代理 + DSH 侧边栏集成**。在 DeepSeek Harness 侧边栏里直接管理回测批次、查看结果、一键提交、本地即时计算自相关性。
+WorldQuant BRAIN 回测引擎的**本地代理 + DSH 侧边栏集成**。在 DeepSeek Harness 侧边栏里直接管理回测批次、查看结果、**盯一批候选 alpha**、**真提交到平台**、本地即时计算自相关性。
 
 ---
 
@@ -162,6 +162,34 @@ AI 批量管理：一键同步 ACTIVE、批量下载 PnL、批量提交回测
 - 「🔄 同步 ACTIVE」一键下载全 ACTIVE alpha 的 PnL 到本地缓存
 - 之后所有本地 SELF_CORRELATION 计算都与 BRAIN 同口径
 
+### 8. Alpha 自选池（v2.0 新增）
+
+**问题**：盯一批候选 alpha 时，得在 BRAIN 网页上一页页点开看 sharpe、自相关、有没有进 ACTIVE。
+
+**解决**：「千寻结果」页新增 ⭐ **Alpha 自选池**卡
+
+- 粘 alpha_id（可一次多个，逗号/空格/换行分隔）即入库；池子存在**引擎侧** `data/alpha_pool.json`
+  （不是浏览器 localStorage——DSH Desktop 每次启动可能换端口，换端口 localStorage 就丢了）
+- 表格一眼看全：**状态 / region / alpha_id（⧉ 一键复制）/ sharpe / fitness / ret% / to% /
+  margin（万分之一）/ selfcorr / prodcorr / 备注**
+- 状态只有二值：`active`（在 BRAIN ACTIVE 组合里）/ `unsubmit`；BRAIN 拿不到 ACTIVE 列表时标 `unknown`，
+  **不会把「没拿到」当成「没进」**
+- **备注**列可直接在格子里写，自动保存
+- 「🔄 同步」刷新整池；有 90s 时间预算，BRAIN 限流时先给已完成的部分，再点一次接着刷
+
+### 9. 一键提交到平台（v2.0 新增）
+
+**问题**：BRAIN 网页提交一条要转圈几十分钟到几小时；而 SELF_CORRELATION 只在提交阶段才算得出来。
+
+**解决**：自选池下方「⚡ 提交到平台」栏
+
+- 粘 alpha_id → **先拉 check 把 FAIL 项摊在确认框里** → 确认后才真提交
+- 两道确认：通用确认 + 有 FAIL 时额外一次（默认拦住，仍可强制提）
+- 异步任务，页面看逐条进度；平台还在算时标「待续查」，点「续查」接着轮询（**不会重复 POST**）
+- 安全闸：必须带 `confirm` token、单次最多 5 个、串行提交（这个接口 429 极凶）
+- ⚠️ **提交不可逆**，会占提交额度并写进账号 ACTIVE 组合。agent / 脚本不得代为提交
+
+
 ---
 
 ## 安装（3 步，跨平台）
@@ -220,6 +248,10 @@ curl http://127.0.0.1:8765/health
 dsh plugin add @deepseek-ai/dsh-qianxun-tab --profile web
 dsh plugin add dsh-qianxun-server --profile web
 ```
+
+> 侧边栏插件的源码在本仓库 **`dsh-qianxun-tab/`**（含 `src/` 与已构建的 `lib/`）。
+> 不想走 npm 的话，也可以直接从本地路径装：
+> `dsh plugin add /path/to/dsh-qianxun-alpha/dsh-qianxun-tab --profile web`
 
 重启 DSH（按你的平台选一个）：
 

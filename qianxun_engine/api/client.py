@@ -552,11 +552,36 @@ class APIClient:
 
         由 consultant 的 `get_check_submission` 移植而来——浏览器无法直连 BRAIN
         （认证/CORS/Retry-After 处理都要走服务端），所以这里走 qianxund 代理。
+
+        修复（2026-09-18 实测）：`/check` 和 `/correlations/prod` 同款毛病——**首次
+        调用常返回 HTTP 200 但 body 为空**（平台在后台现算 check）。原实现直接
+        `resp.json()` → JSONDecodeError → 自选池的 selfcorr/prodcorr 与侧边栏 🔍
+        check 面板第一次永远是空的，再点一次才有。这里按
+        `get_alpha_correlations_prod` 的既有做法显式重试空响应。
         """
-        resp = self._request_with_retry(
-            "GET", f"/alphas/{alpha_id}/check", op_name=f"get_alpha_check[{alpha_id}]",
-        )
-        return resp.json()
+        import json as _json
+        last_err: Exception | None = None
+        for attempt in range(3):
+            resp = self._request_with_retry(
+                "GET", f"/alphas/{alpha_id}/check", op_name=f"get_alpha_check[{alpha_id}]",
+            )
+            raw = (resp.text or "").strip()
+            if not raw:
+                last_err = ValueError(f"empty body (attempt {attempt + 1}/3)")
+                logger.info("alpha_check[{}] 空响应（第 {}/3 次），10s 后重试",
+                            alpha_id, attempt + 1)
+                time.sleep(10)
+                continue
+            try:
+                return _json.loads(raw)
+            except _json.JSONDecodeError as e:
+                last_err = e
+                logger.warning("alpha_check[{}] 非 JSON（第 {}/3 次）：{}",
+                               alpha_id, attempt + 1, e)
+                time.sleep(10)
+        # 三次都空：明确报错（上层 /api/alphas/<id>/check 会 502，
+        # 自选池会把原因写进该行的 errors）——不返回空壳冒充「没有 check」。
+        raise RuntimeError(f"BRAIN check 三次都拿不到有效响应：{last_err}")
 
     def get_alpha_correlations_prod(self, alpha_id: str) -> dict:
         """单 alpha 的 prod correlation 数值（max/min/records）。

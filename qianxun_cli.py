@@ -63,29 +63,24 @@ DEFAULT_SETTINGS: dict = {
     "visualization": False,
 }
 
-
 def _normalize_settings(settings: dict) -> dict:
     """补全平台必需 settings 字段：用户值优先，缺失用默认。"""
     merged = dict(DEFAULT_SETTINGS)
     merged.update({k: v for k, v in settings.items() if v is not None})
     return merged
 
-
 # ---------------- helpers ----------------
-
 
 def _storage(db: str) -> Storage:
     p = Path(db)
     p.parent.mkdir(parents=True, exist_ok=True)
     return Storage(p)
 
-
 def _client() -> APIClient:
     cfg = BrainConfig.from_env()  # 优先环境变量 WQ_USERNAME/WQ_PASSWORD，缺失回退 keyring
     client = APIClient(cfg)
     client.authenticate()
     return client
-
 
 def _progress_cb(quiet: bool = False):
     def cb(event: str, payload: dict) -> None:
@@ -101,7 +96,6 @@ def _progress_cb(quiet: bool = False):
             print(f"  ✗ sim {payload.get('sim_id', '?')} 失败：{payload.get('error', '?')[:80]}")
     return cb
 
-
 def _load_batch_json(path: str) -> dict:
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     if "settings" not in data or "expressions" not in data:
@@ -110,9 +104,7 @@ def _load_batch_json(path: str) -> dict:
         raise SystemExit("expressions 为空，无表达式可提交")
     return data
 
-
 # ---------------- commands ----------------
-
 
 def cmd_login(args) -> int:
     try:
@@ -123,7 +115,6 @@ def cmd_login(args) -> int:
         print(f"❌ 登录失败：{type(e).__name__}: {e}")
         print("   检查环境变量 WQ_USERNAME / WQ_PASSWORD 是否已设置（export WQ_USERNAME=...）")
         return 1
-
 
 def cmd_submit(args) -> int:
     data = _load_batch_json(args.file)
@@ -197,7 +188,6 @@ def cmd_submit(args) -> int:
     print(f"✅ 批次 {batch_no} 完成。用 `qianxun_cli.py analyze {batch_no}` 看结果")
     return 0
 
-
 def cmd_status(args) -> int:
     st = _storage(args.db)
     if args.batch:
@@ -214,7 +204,6 @@ def cmd_status(args) -> int:
         print(f"  {b['batch_no']} | {b['region']} | {b['expression_count']}个 | {b['status']} | {b['created_at']}")
     return 0
 
-
 def cmd_wait(args) -> int:
     st = _storage(args.db)
     deadline = time.time() + (args.timeout or 3600)
@@ -226,7 +215,6 @@ def cmd_wait(args) -> int:
         time.sleep(10)
     print(f"⏰ 等待超时（{args.timeout or 3600}s），批次 {args.batch} 仍在跑。可再次 wait 或查 status")
     return 1
-
 
 def cmd_analyze(args) -> int:
     st = _storage(args.db)
@@ -244,7 +232,6 @@ def cmd_analyze(args) -> int:
               f"{str(a.get('check_status') or ''):>10}")
     return 0
 
-
 def cmd_radar(args) -> int:
     if not RADAR_SCRIPT.exists():
         print(f"direction_radar.py 不存在（应放在 {RADAR_SCRIPT}）")
@@ -255,7 +242,6 @@ def cmd_radar(args) -> int:
     if args.total:
         cmd += ["--total", str(args.total)]
     return subprocess.call(cmd)
-
 
 def cmd_resume(args) -> int:
     """断点续跑：按批次号找回 task_run，补跑 pending 模拟。"""
@@ -280,9 +266,7 @@ def cmd_resume(args) -> int:
     print(f"✅ 续跑完成")
     return 0
 
-
 # ---------------- main ----------------
-
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="qianxun_cli", description="千寻 headless CLI（跨平台，Python 3.10+）")
@@ -326,7 +310,6 @@ def main(argv: list[str] | None = None) -> int:
     return {"login": cmd_login, "submit": cmd_submit, "status": cmd_status,
             "wait": cmd_wait, "analyze": cmd_analyze, "radar": cmd_radar,
             "resume": cmd_resume}[args.cmd](args)
-
 
 if __name__ == "__main__":
     sys.exit(main())

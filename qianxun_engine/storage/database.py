@@ -12,7 +12,6 @@ from typing import Any, Iterable
 
 from loguru import logger
 
-
 class _ThreadSafeConn:
     """sqlite3 连接线程安全代理：写操作（execute/executemany/commit）串行化。
 
@@ -57,7 +56,6 @@ class _ThreadSafeConn:
         # row_factory / cursor / isolation_level 等属性透传
         return getattr(self._conn, name)
 
-
 def expression_key(expression: str, settings: dict) -> str:
     """表达式指纹：表达式 + 关键 settings 的哈希。
 
@@ -80,10 +78,8 @@ def expression_key(expression: str, settings: dict) -> str:
     )
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
-
 class StorageError(Exception):
     pass
-
 
 class Storage:
     """本地 SQLite 持久化（单文件、单连接 + 线程锁）。"""
@@ -163,7 +159,6 @@ class Storage:
         updated_at TEXT NOT NULL
     );
 
-
     CREATE TABLE IF NOT EXISTS submissions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         alpha_id TEXT NOT NULL,
@@ -207,6 +202,26 @@ class Storage:
 
     CREATE INDEX IF NOT EXISTS idx_ai_commands_status
         ON ai_commands(status);
+
+    -- 便捷视图（2026-09-10 加）：simulations 表本身没有 batch_no 列
+    -- （只有 task_run_id），而 agent/脚本习惯按批次号查模拟明细，
+    -- 反复写 `select * from simulations where batch_no=...` 导致
+    -- "no such column: batch_no"。此视图把 JOIN 藏起来：
+    --   select * from sims_by_batch where batch_no='B20260910-006'
+    CREATE VIEW IF NOT EXISTS sims_by_batch AS
+    SELECT t.batch_no,
+           s.id            AS sim_id,
+           s.task_run_id,
+           s.expression,
+           s.decay,
+           s.alpha_id,
+           s.status,
+           s.progress,
+           s.last_error,
+           s.created_at,
+           s.updated_at
+    FROM simulations s
+    JOIN task_runs t ON s.task_run_id = t.id;
     """
 
     def __init__(self, db_path: str | Path):
@@ -632,7 +647,6 @@ class Storage:
         with self._lock:
             rows = self._conn.execute(sql, params).fetchall()
         return [dict(r) for r in rows]
-
 
     # -------- alphas --------
 

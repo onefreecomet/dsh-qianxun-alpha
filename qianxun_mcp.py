@@ -4,11 +4,11 @@
 让任意 MCP 客户端（opencode / Claude Desktop / Cursor / deepseek harness 等）
 直接驱动千寻并行接口：提交批次、看进度、等结果、取消、断点续跑、查配额。
 
-接入方式（以 opencode 为例）：
+接入方式（以 opencode 为例；$DEVKIT = 你的 devkit 安装根，如 ~/qianxun-devkit）：
     "qianxun": {
       "type": "stdio",
       "command": "python3",
-      "args": ["/Users/libing/QianXun/qianxun_mcp.py"],
+      "args": ["$DEVKIT/engine/qianxun_mcp.py"],
       "env": { "QIANXUND_URL": "http://127.0.0.1:8765" }
     }
 

@@ -63,11 +63,9 @@ def load_credentials():
                 continue
     return "", ""
 
-
 def make_config() -> BrainConfig:
     u, p = load_credentials()
     return BrainConfig(username=u, password=p)
-
 
 def make_client() -> APIClient:
     cfg = make_config()
@@ -75,12 +73,10 @@ def make_client() -> APIClient:
     client.authenticate()
     return client
 
-
 # ------------------------------------------------------------- 全局态 ----
 _ACTIVE = {}          # batch_no -> {"scheduler", "client", "started_at", "thread"}
 _ACTIVE_LOCK = threading.Lock()
 PENDING_CMDS = []     # [{command, payload, id}] 供 UI/AI 命令队列
-
 
 def _backfill_alpha_details(client, st, tid, batch_no):
     """调度完成后回填 alpha 指标到 alphas 表（看板/analyze 展示用）。
@@ -104,13 +100,14 @@ def _backfill_alpha_details(client, st, tid, batch_no):
             time.sleep(1)  # 平台限流缓冲
     print(f"[qxd:{batch_no}] backfill done: {n} alpha", flush=True)
 
-
 class DaemonState:
     """daemon 运行期状态（进程内存），与 SQLite 持久化互补。"""
-    def __init__(self, storage: Storage, concurrent=3, batch_size=10):
+    def __init__(self, storage: Storage, concurrent=3, batch_size=10, sim_slots=4):
         self.storage = storage
         self.concurrent = concurrent
         self.batch_size = batch_size
+        # 平台侧并发名额（1 个 multi-sim = 1 个名额）；默认与历史行为一致
+        self.sim_slots = max(1, int(sim_slots))
         self.boot_ts = time.time()
         self.last_ratelimit: dict | None = None
 
@@ -144,6 +141,7 @@ class DaemonState:
         sched = BatchScheduler(
             client, st, progress_cb=self._mk_cb(batch_no),
             max_concurrent_batches=self.concurrent, batch_size=self.batch_size,
+            max_concurrent_simulations=self.sim_slots,
         )
 
         def _worker():
@@ -187,7 +185,8 @@ class DaemonState:
         client = make_client()
         sched = BatchScheduler(client, st, progress_cb=self._mk_cb(batch_no),
                                max_concurrent_batches=self.concurrent,
-                               batch_size=self.batch_size)
+                               batch_size=self.batch_size,
+                               max_concurrent_simulations=self.sim_slots)
         st.update_ai_batch_status(batch_no, "running")
 
         def _worker():
@@ -310,12 +309,10 @@ class DaemonState:
             "batch_status": b.get("status"),
         }
 
-
 def _map_status(s):
     return {None: "QUEUED", "pending": "QUEUED", "running": "RUNNING",
             "paused": "RUNNING", "completed": "COMPLETE", "failed": "ERROR",
             "cancelled": "STOPPED"}.get(s, "QUEUED")
-
 
 def _to_ts(iso):
     try:
@@ -324,7 +321,6 @@ def _to_ts(iso):
     except Exception:
         return time.time()
 
-
 DEFAULT_SETTINGS = {
     "instrumentType": "EQUITY", "region": "USA", "universe": "TOP3000", "delay": 1,
     "decay": 1, "neutralization": "SUBINDUSTRY", "truncation": 0.08,
@@ -332,12 +328,10 @@ DEFAULT_SETTINGS = {
     "nanHandling": "ON", "language": "FASTEXPR", "visualization": False,
 }
 
-
 def _normalize_settings(settings: dict) -> dict:
     merged = dict(DEFAULT_SETTINGS)
     merged.update({k: v for k, v in settings.items() if v is not None})
     return merged
-
 
 # ------------------------------------------------------------- HTTP ----
 UISTATE = None  # DaemonState 实例, serve() 时注入
@@ -351,6 +345,31 @@ except Exception as _osm_err:  # pragma: no cover
     print(f"[qxd] osmosis 扩展未启用: {_osm_err}", flush=True)
     _OSMOSIS = None
 
+# ---- ARC 回测（隔离扩展：仅新增 /arc 页面与 /api/arc/* 路由，
+#      加载失败只打印告警并禁用扩展，绝不影响主看板功能）----
+# 只创建 IS 模拟 / 轮询 / 记录结果；不设置属性、不提交 alpha、不跑 submission check。
+try:
+    import arc_service as _ARC  # noqa: E402
+    _ARC.configure(client_factory=make_client, arc_dir=HERE / "data" / "arc")
+except Exception as _arc_err:  # pragma: no cover
+    print(f"[qxd] arc 扩展未启用: {_arc_err}", flush=True)
+    _ARC = None
+
+# ---- Alpha 自选池（隔离扩展：仅新增 /api/alpha-pool* 路由，
+#      加载失败只打印告警并禁用扩展，绝不影响主看板功能）----
+# 只读 BRAIN（/alphas/<id>、/alphas/<id>/check）+ 复用引擎自己的 alphas 表兜底；
+# 不设属性、不提交、不跑 submission check。
+try:
+    import alpha_pool_service as _ALPHA_POOL  # noqa: E402
+    _ALPHA_POOL.configure(
+        client_factory=make_client,
+        pool_path=HERE / "data" / "alpha_pool.json",
+        db_path=DEFAULT_DB,
+        active_ids_getter=lambda force=False: _active_ids_cached(force),
+    )
+except Exception as _ap_err:  # pragma: no cover
+    print(f"[qxd] alpha-pool 扩展未启用: {_ap_err}", flush=True)
+    _ALPHA_POOL = None
 
 class Handler(BaseHTTPRequestHandler):
     server_version = "qianxund/1.0"
@@ -412,6 +431,7 @@ class Handler(BaseHTTPRequestHandler):
             if method == "GET":
                 return self._send(200, {"concurrent": UISTATE.concurrent, "batch_size": UISTATE.batch_size,
                                         "slots": UISTATE.concurrent, "per_slot": 1,
+                                        "sim_slots": UISTATE.sim_slots,
                                         "total_concurrency": UISTATE.concurrent,
                                         "max_job": 5000})
             if method == "POST":
@@ -420,8 +440,11 @@ class Handler(BaseHTTPRequestHandler):
                     UISTATE.concurrent = max(1, int(body["concurrent"]))
                 if body and "batch_size" in body:
                     UISTATE.batch_size = max(1, min(10, int(body["batch_size"])))
+                if body and "sim_slots" in body:
+                    UISTATE.sim_slots = max(1, int(body["sim_slots"]))
                 return self._send(200, {"concurrent": UISTATE.concurrent, "batch_size": UISTATE.batch_size,
                                         "slots": UISTATE.concurrent, "per_slot": 1,
+                                        "sim_slots": UISTATE.sim_slots,
                                         "total_concurrency": UISTATE.concurrent})
         if path == "/api/quota":
             rl = UISTATE.last_ratelimit
@@ -436,19 +459,10 @@ class Handler(BaseHTTPRequestHandler):
             cached = _ACTIVE_CACHE.get("ids")
             if cached is not None and now - cached[0] < _ACTIVE_CACHE_TTL:
                 return self._send(200, {**cached[1], "cache_hit": True})
-            try:
-                client = make_client()
-                ids = client.get_active_alphas()
-                payload = {
-                    "count": len(ids),
-                    "ids": ids,
-                    "fetched_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                }
-                _ACTIVE_CACHE["ids"] = (now, payload)
-                return self._send(200, {**payload, "cache_hit": False})
-            except Exception as cause:
-                logger.warning("active_alphas fetch failed: {}", cause)
-                return self._send(502, {"error": f"BRAIN active_alphas failed: {cause}"})
+            ids = _active_ids_cached(force=True)
+            if ids is None:
+                return self._send(502, {"error": "BRAIN active_alphas failed"})
+            return self._send(200, {**_ACTIVE_CACHE["ids"][1], "cache_hit": False})
         if path == "/api/jobs":
             if method == "GET":
                 return self._send(200, {"jobs": UISTATE.jobs_view()})
@@ -733,6 +747,30 @@ class Handler(BaseHTTPRequestHandler):
                 except Exception as exc:
                     logger.exception("osmosis route error: {}", exc)
                     return self._send(500, {"error": f"osmosis internal error: {exc}"})
+        # ---- ARC 回测（隔离扩展，_ARC 为 None 时整体不生效）----
+        if _ARC is not None:
+            if path == "/arc":
+                arc_html = HERE / "arc_ui.html"
+                return self._html(arc_html.read_text(encoding="utf-8")
+                                  if arc_html.exists()
+                                  else "<h1>arc_ui.html missing</h1>")
+            if path.startswith("/api/arc/"):
+                try:
+                    code, resp = _ARC.route(method, self.path,
+                                            self._body() if method == "POST" else None)
+                    return self._send(code, resp)
+                except Exception as exc:
+                    logger.exception("arc route error: {}", exc)
+                    return self._send(500, {"ok": False, "error": f"arc internal error: {exc}"})
+        # ---- Alpha 自选池（隔离扩展，_ALPHA_POOL 为 None 时整体不生效）----
+        if _ALPHA_POOL is not None and path.startswith("/api/alpha-pool"):
+            try:
+                code, resp = _ALPHA_POOL.route(
+                    method, self.path, self._body() if method == "POST" else None)
+                return self._send(code, resp)
+            except Exception as exc:
+                logger.exception("alpha-pool route error: {}", exc)
+                return self._send(500, {"ok": False, "error": f"alpha-pool internal error: {exc}"})
         return self._send(404, {"error": "not found"})
 
     def _osmosis_route(self, method, path):
@@ -793,7 +831,6 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self): self._route("GET")
     def do_POST(self): self._route("POST")
 
-
 def _brief_log(d):
     lines = []
     for r in d.get("results", [])[:50]:
@@ -802,11 +839,11 @@ def _brief_log(d):
         lines.append({"line": f"{mark} [{st}] {r.get('expression','')[:70]} alpha={r.get('alpha_id','')}"})
     return [{"n": i, "line": l["line"]} for i, l in enumerate(lines)]
 
-
-def serve(port, host, token, concurrent, batch_size, db):
+def serve(port, host, token, concurrent, batch_size, db, sim_slots=4):
     global UISTATE
     st = Storage(db)
-    UISTATE = DaemonState(st, concurrent=concurrent, batch_size=batch_size)
+    UISTATE = DaemonState(st, concurrent=concurrent, batch_size=batch_size,
+                          sim_slots=sim_slots)
     # 迁移旧 backtestd 库：如果给出的是 backtest_data/backtestd.db 之类一律不管，
     # 只用 qianxun schema 的 db。
     server = ThreadingHTTPServer((host, port), Handler)
@@ -820,7 +857,6 @@ def serve(port, host, token, concurrent, batch_size, db):
         server.serve_forever()
     except KeyboardInterrupt:
         print("shutting down", flush=True)
-
 
 # /api/alphas/<id>/check 简单 TTL 缓存：避免侧边栏反复轮询同一 alpha 把 BRAIN 打爆。
 # BRAIN 的 check 结果对同一 alpha 是相对稳定的（参数没改就不变），缓存 60s 足够。
@@ -836,6 +872,30 @@ _CORR_PROD_CACHE_TTL = 60.0
 _ACTIVE_CACHE: dict[str, tuple[float, dict]] = {}
 _ACTIVE_CACHE_TTL = 300.0
 
+def _active_ids_cached(force: bool = False) -> list[str] | None:
+    """返回 BRAIN 当前 ACTIVE 的 alpha_ids（命中 5 min 缓存就不打 BRAIN）。
+
+    抽成函数是为了让 alpha_pool 扩展复用同一份缓存 —— 同一件事打两次 BRAIN
+    既浪费配额又容易撞 429。返回 None 表示这次没拿到（调用方必须区分
+    「没拿到」和「空集合」，否则会把整个自选池误标成 unsubmit）。
+    """
+    now = time.time()
+    cached = _ACTIVE_CACHE.get("ids")
+    if not force and cached is not None and now - cached[0] < _ACTIVE_CACHE_TTL:
+        return list(cached[1]["ids"])
+    try:
+        client = make_client()
+        ids = client.get_active_alphas()
+    except Exception as cause:  # noqa: BLE001
+        logger.warning("active_alphas fetch failed: {}", cause)
+        return None
+    _ACTIVE_CACHE["ids"] = (now, {
+        "count": len(ids),
+        "ids": ids,
+        "fetched_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    })
+    return list(ids)
+
 # PnL 缓存批量回填任务状态（短生命周期，进程重启即清空）：
 #   - job_id: 任务唯一 ID
 #   - status: "running" | "done" | "error"
@@ -846,14 +906,12 @@ _PNL_BACKFILL_JOBS: dict[str, dict] = {}
 _PNL_BACKFILL_LOCK = threading.Lock()
 _PNL_BACKFILL_COUNTER: dict[str, int] = {"n": 0}
 
-
 def _new_backfill_job_id() -> str:
     """生成短 ID：bf-<UTC-date>-<3位序号>。同日多次回填序号递增。"""
     with _PNL_BACKFILL_LOCK:
         _PNL_BACKFILL_COUNTER["n"] += 1
         seq = _PNL_BACKFILL_COUNTER["n"]
     return f"bf-{time.strftime('%Y%m%d')}-{seq:03d}"
-
 
 def _run_backfill(job_id: str, target_ids: list[str], region: str | None) -> None:
     """后台线程：并发拉 PnL 并写本地缓存。进度写回 _PNL_BACKFILL_JOBS[job_id]。"""
@@ -927,7 +985,6 @@ PNL_CACHE_DIR: Path = DSH_HOME / "qianxun" / "pnl"
 # alpha_id -> 文件路径（懒计算）
 _PNL_FILE: dict[str, Path] = {}
 
-
 def _pnl_path(alpha_id: str) -> Path:
     """PnL 缓存文件路径（按 alpha_id 命名，不区分 region——区域信息存文件内）。"""
     if alpha_id not in _PNL_FILE:
@@ -935,7 +992,6 @@ def _pnl_path(alpha_id: str) -> Path:
         safe = re.sub(r"[^A-Za-z0-9_\-]", "_", alpha_id)
         _PNL_FILE[alpha_id] = PNL_CACHE_DIR / f"{safe}.json"
     return _PNL_FILE[alpha_id]
-
 
 def _read_pnl_cache(alpha_id: str) -> dict | None:
     """读本地 PnL 缓存，损坏或缺失返回 None。"""
@@ -947,7 +1003,6 @@ def _read_pnl_cache(alpha_id: str) -> dict | None:
     except (OSError, json.JSONDecodeError) as cause:
         logger.warning("pnl_cache read failed for {}: {}", alpha_id, cause)
         return None
-
 
 def _is_submitted_locally(alpha_id: str) -> bool:
     """查 qianxund 本地 `simulations` 表，看 alpha 是否已被提交到 BRAIN。
@@ -967,7 +1022,6 @@ def _is_submitted_locally(alpha_id: str) -> bool:
         logger.warning("_is_submitted_locally({}) failed: {}", alpha_id, cause)
         return False
 
-
 def _write_pnl_cache(alpha_id: str, payload: dict) -> Path:
     """原子写 PnL 缓存：先写 .tmp 再 rename，防止崩溃产生半截文件。"""
     PNL_CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -983,7 +1037,6 @@ def _write_pnl_cache(alpha_id: str, payload: dict) -> Path:
             except OSError:
                 pass
     return target
-
 
 def self_test():
     import tempfile
@@ -1006,7 +1059,6 @@ def self_test():
     print("self-test OK")
     return 0
 
-
 def main():
     args = sys.argv[1:]
     cmd = args[0] if args else "serve"
@@ -1020,6 +1072,7 @@ def main():
     token = None
     concurrent = int(os.environ.get("QIANXUND_CONCURRENT", "3"))
     batch_size = int(os.environ.get("QIANXUND_BATCH_SIZE", "10"))
+    sim_slots = int(os.environ.get("QIANXUND_SIM_SLOTS", "4"))
     db = os.environ.get("QIANXUND_DB", str(DEFAULT_DB))
     i = 1
     while i < len(args):
@@ -1028,10 +1081,10 @@ def main():
         elif args[i] == "--token" and i + 1 < len(args): token = args[i+1]; i += 2
         elif args[i] == "--concurrent" and i + 1 < len(args): concurrent = max(1, int(args[i+1])); i += 2
         elif args[i] == "--batch-size" and i + 1 < len(args): batch_size = max(1, min(10, int(args[i+1]))); i += 2
+        elif args[i] == "--sim-slots" and i + 1 < len(args): sim_slots = max(1, int(args[i+1])); i += 2
         elif args[i] == "--db" and i + 1 < len(args): db = args[i+1]; i += 2
         else: i += 1
-    serve(port, host, token, concurrent, batch_size, db)
-
+    serve(port, host, token, concurrent, batch_size, db, sim_slots)
 
 if __name__ == "__main__":
     main()

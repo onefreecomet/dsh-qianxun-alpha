@@ -39,7 +39,6 @@ RESULT_MARKER = "@@RESULT@@"
 _real_stdout = sys.stdout
 sys.stdout = sys.stderr  # type: ignore[assignment]
 
-
 def load_allocator():
     """动态加载 osmosis_allocator（原文件零修改）。"""
     if not ALLOCATOR_PATH.exists():
@@ -50,13 +49,11 @@ def load_allocator():
     spec.loader.exec_module(mod)
     return mod
 
-
 def emit_result(obj: dict) -> None:
     """向真实 stdout 输出一行结果标记。"""
     line = RESULT_MARKER + " " + json.dumps(obj, ensure_ascii=False)
     _real_stdout.write(line + "\n")
     _real_stdout.flush()
-
 
 def credentials_status(alloc) -> dict:
     """探测凭据可用性（绝不回显任何值）。"""
@@ -74,7 +71,6 @@ def credentials_status(alloc) -> dict:
         return {"found": env_ok, "source": "env" if env_ok else None}
     except Exception as exc:  # pragma: no cover
         return {"found": False, "error": str(exc)[:120]}
-
 
 def apply_overrides(alloc, settings: dict) -> dict:
     """把 payload.settings 映射到 allocator 全局配置。返回生效配置摘要。"""
@@ -138,7 +134,6 @@ def apply_overrides(alloc, settings: dict) -> dict:
         "max_pnl_corr": alloc.MAX_PNL_CORR,
     }
 
-
 def selfcheck() -> int:
     """自检：pandas 版本 / allocator 可加载 / 凭据探测（无平台调用）。"""
     result: dict = {"ok": False, "step": "selfcheck"}
@@ -160,7 +155,6 @@ def selfcheck() -> int:
         result["error"] = f"{type(exc).__name__}: {exc}"
         emit_result(result)
         return 1
-
 
 def _slim_selected(df) -> list[dict]:
     """选中的 alpha 行 → 前端表格友好的精简 dict 列表。"""
@@ -185,7 +179,6 @@ def _slim_selected(df) -> list[dict]:
             item[c] = v
         rows.append(item)
     return rows
-
 
 def run_mode(mode: str, settings: dict, confirm: bool) -> int:
     result: dict = {"ok": False, "step": mode}
@@ -272,7 +265,6 @@ def run_mode(mode: str, settings: dict, confirm: bool) -> int:
     emit_result(result)
     return 0
 
-
 def main() -> int:
     parser = argparse.ArgumentParser(description="osmosis 隔离 runner")
     sub = parser.add_subparsers(dest="cmd")
@@ -300,7 +292,6 @@ def main() -> int:
         emit_result({"ok": False, "step": mode,
                      "error": f"{type(exc).__name__}: {exc}"[:500]})
         return 1
-
 
 if __name__ == "__main__":
     try:

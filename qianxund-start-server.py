@@ -43,7 +43,6 @@ QIANXUND_ARGS = [
     "--batch-size", "8",
 ]
 
-
 def engine_alive() -> bool:
     import urllib.request
     try:
@@ -51,7 +50,6 @@ def engine_alive() -> bool:
             return resp.status == 200
     except Exception:
         return False
-
 
 def engine_uptime() -> int | None:
     import urllib.request
@@ -61,7 +59,6 @@ def engine_uptime() -> int | None:
             return d.get("uptime_s")
     except Exception:
         return None
-
 
 def start_engine() -> dict:
     if engine_alive():
@@ -102,7 +99,6 @@ def start_engine() -> dict:
     except Exception as e:
         return {"ok": False, "started": False, "error": str(e)}
 
-
 def stop_engine() -> dict:
     # 找当前 qianxund 进程并 kill
     try:
@@ -116,7 +112,6 @@ def stop_engine() -> dict:
         return {"ok": True, "killed": pids}
     except Exception as e:
         return {"ok": False, "error": str(e)}
-
 
 class Handler(BaseHTTPRequestHandler):
     server_version = "qianxund-ctl/1.0"
@@ -168,13 +163,11 @@ class Handler(BaseHTTPRequestHandler):
         else:
             self._send(404, {"error": "not found"})
 
-
 def serve(port: int):
     srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     srv.daemon_threads = True
     print(f"qianxund-ctl listening on http://127.0.0.1:{port}", flush=True)
     srv.serve_forever()
-
 
 if __name__ == "__main__":
     serve(DEFAULT_PORT)

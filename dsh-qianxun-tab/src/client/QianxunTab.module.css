@@ -1,0 +1,1741 @@
+/* 千寻回测 tab —— 全部使用 DSH 设计令牌变量（var(--ds-color-*)）。
+ * 状态色（绿/黄/红/蓝）是同色环内必要的语义色，行内注释说明，不自造十六进制主题。 */
+
+:root {
+  /* 语义色（与 DSH 其它面板一致，仅在此集中定义一次供品牌类徽章复用）。
+   * 若产品有对应令牌，可整组替换，无需改动下方使用处。 */
+  --qx-green: #3fb950; /* 成功 / 完成 */
+  --qx-red: #ff7b72; /* 危险 / 失败 */
+  --qx-yellow: #d29922; /* 警告 */
+  --qx-blue: #58a6ff; /* 运行中 */
+}
+
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  font-size: 12px;
+  color: var(--ds-color-text, #e5e5e5);
+  background: var(--ds-color-bg, #151515);
+}
+
+/* ── header ──────────────────────────────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--ds-color-border, #333);
+  background: var(--ds-color-bg-soft, #1c1c1c);
+  flex-shrink: 0;
+}
+
+.titleIcon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.title {
+  font-weight: 650;
+  letter-spacing: 0.2px;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.quotaChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ds-color-bg, #1a1a1a) 40%, transparent);
+  border: 1px solid var(--ds-color-border, #333);
+  color: var(--ds-color-text, #e5e5e5);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: help;
+}
+
+.quotaLabel {
+  opacity: 0.7;
+  font-size: 10px;
+}
+
+.quotaChip b {
+  color: var(--qx-blue);
+  font-weight: 650;
+}
+
+.quotaSep {
+  opacity: 0.4;
+  margin: 0 1px;
+}
+
+.startEngineBtnOnline {
+  background: color-mix(in srgb, var(--qx-green) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--qx-green) 50%, transparent);
+  color: var(--qx-green);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: default;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.startEngineBtnOffline {
+  background: color-mix(in srgb, var(--qx-red) 15%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--qx-red) 50%, transparent);
+  color: var(--qx-red);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  animation: pulseOffline 2s ease-in-out infinite;
+}
+
+@keyframes pulseOffline {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.startEngineToast {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  animation: startEngineFade 1.6s ease-in-out infinite;
+  flex-shrink: 0;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.startEngineToastOk {
+  color: var(--qx-green);
+  background: color-mix(in srgb, var(--qx-green) 12%, transparent);
+}
+
+.startEngineToastWarn {
+  color: var(--qx-yellow);
+  background: color-mix(in srgb, var(--qx-yellow) 12%, transparent);
+}
+
+@keyframes startEngineFade {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.cacheBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--qx-blue) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--qx-blue) 35%, transparent);
+  color: var(--qx-blue);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: help;
+  flex-shrink: 0;
+}
+
+.cacheBadgeActive {
+  color: var(--qx-green);
+  font-weight: 600;
+}
+
+.cacheBadgeBackfill {
+  color: var(--qx-yellow);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  animation: cacheBackfillPulse 1.4s ease-in-out infinite;
+}
+
+.cacheBadgePartial {
+  color: var(--qx-yellow);
+  font-weight: 600;
+}
+
+.cacheBadgeCaptcha {
+  color: var(--qx-red);
+  font-weight: 600;
+}
+
+@keyframes cacheBackfillPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+.backfillBtn {
+  background: color-mix(in srgb, var(--qx-blue) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--qx-blue) 45%, transparent);
+  color: var(--qx-blue);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.backfillBtn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--qx-blue) 22%, transparent);
+}
+
+.backfillBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dotOnline,
+.dotOk {
+  background: var(--qx-green);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--qx-green) 25%, transparent);
+}
+
+.dotOffline,
+.dotError {
+  background: var(--qx-red);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--qx-red) 25%, transparent);
+}
+
+.dotUnknown {
+  background: #8b949e;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #8b949e 25%, transparent);
+}
+
+.dotRunning {
+  background: var(--qx-blue);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--qx-blue) 25%, transparent);
+}
+
+.dotLabel {
+  font-size: 11px;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+/* ── scrollable body ─────────────────────────────────────────────────── */
+.body {
+  flex: 1;
+  overflow: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+/* ── pagination (sticky on top of scrollable body) ───────────────────── */
+.pagination {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: color-mix(in srgb, var(--ds-color-bg-soft, #1c1c1c) 92%, transparent);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--ds-color-border, #333);
+  border-radius: 8px;
+  font-size: 11px;
+  color: var(--ds-color-text, #e5e5e5);
+  box-shadow: 0 2px 6px color-mix(in srgb, #000 25%, transparent);
+}
+
+.paginationBtn {
+  background: transparent;
+  border: 1px solid var(--ds-color-border, #444);
+  color: var(--ds-color-text, #e5e5e5);
+  border-radius: 6px;
+  width: 24px;
+  height: 24px;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.paginationBtn:hover:not(:disabled) {
+  background: var(--ds-color-bg-soft, #2a2a2a);
+  border-color: var(--qx-blue);
+  color: var(--qx-blue);
+}
+
+.paginationBtn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.paginationInfo {
+  font-size: 11px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.paginationInfo b {
+  color: var(--qx-blue);
+  font-weight: 650;
+}
+
+.paginationTotal {
+  opacity: 0.75;
+  margin-left: 2px;
+}
+
+.paginationSizeLabel {
+  opacity: 0.7;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.paginationSizeSelect {
+  background: var(--ds-color-bg, #101010);
+  border: 1px solid var(--ds-color-border, #444);
+  color: var(--ds-color-text, #e5e5e5);
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  height: 24px;
+}
+
+.paginationSizeSelect:focus {
+  outline: none;
+  border-color: var(--qx-blue);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--qx-blue) 25%, transparent);
+}
+
+.paginationSizeHint {
+  opacity: 0.55;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+/* ── generic button (icon button) ────────────────────────────────────── */
+.iconBtn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--ds-color-text, #e5e5e5);
+  border-radius: 6px;
+  padding: 3px 7px;
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.iconBtn:hover:not(:disabled) {
+  background: var(--ds-color-bg-soft, #2a2a2a);
+  border-color: var(--ds-color-border, #444);
+}
+
+.iconBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.actionIco {
+  min-width: 24px;
+}
+
+.actionDanger {
+  color: var(--qx-red);
+  border-color: color-mix(in srgb, var(--qx-red) 45%, transparent);
+}
+
+.actionDanger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--qx-red) 12%, transparent);
+  border-color: var(--qx-red);
+}
+
+.actionPrimary {
+  color: var(--qx-blue);
+  border-color: color-mix(in srgb, var(--qx-blue) 45%, transparent);
+}
+
+.actionPrimary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--qx-blue) 12%, transparent);
+  border-color: var(--qx-blue);
+}
+
+.retryBtn {
+  margin-left: 8px;
+  background: transparent;
+  border: 1px solid var(--ds-color-border, #444);
+  color: var(--ds-color-text, #e5e5e5);
+  border-radius: 5px;
+  padding: 1px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.retryBtn:hover {
+  background: var(--ds-color-bg-soft, #2a2a2a);
+}
+
+/* ghost / outline button */
+.btnGhost {
+  background: transparent;
+  border: 1px solid var(--ds-color-border, #444);
+  color: var(--ds-color-text, #e5e5e5);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btnGhost:hover:not(:disabled) {
+  background: var(--ds-color-bg-soft, #2a2a2a);
+  border-color: var(--ds-color-border, #666);
+}
+
+.btnGhost:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* primary action button */
+.btnPrimary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: color-mix(in srgb, var(--qx-blue) 18%, transparent);
+  color: var(--qx-blue);
+  border: 1px solid color-mix(in srgb, var(--qx-blue) 60%, transparent);
+  border-radius: 6px;
+  padding: 4px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--qx-blue) 28%, transparent);
+}
+
+.btnPrimary:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.spinner {
+  width: 11px;
+  height: 11px;
+  border: 2px solid color-mix(in srgb, var(--qx-blue) 30%, transparent);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: qxSpin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes qxSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── error / messages / empty ────────────────────────────────────────── */
+.error {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  color: var(--qx-red);
+  border: 1px solid color-mix(in srgb, var(--qx-red) 40%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--qx-red) 8%, transparent);
+  word-break: break-word;
+}
+
+.msg {
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  word-break: break-word;
+}
+
+.msgOk {
+  color: var(--qx-green);
+  border: 1px solid color-mix(in srgb, var(--qx-green) 40%, transparent);
+  background: color-mix(in srgb, var(--qx-green) 8%, transparent);
+}
+
+.msgErr {
+  color: var(--qx-red);
+  border: 1px solid color-mix(in srgb, var(--qx-red) 40%, transparent);
+  background: color-mix(in srgb, var(--qx-red) 8%, transparent);
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 26px 16px;
+  flex-direction: row;
+  color: var(--ds-color-text-subtle, #9b9b9b);
+  text-align: left;
+  border: 1px dashed var(--ds-color-border, #333);
+  border-radius: 10px;
+  background: var(--ds-color-bg-soft, #1a1a1a);
+}
+
+.emptyIcon {
+  font-size: 26px;
+}
+
+.emptyTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ds-color-text, #e5e5e5);
+}
+
+.emptySub {
+  font-size: 11px;
+  opacity: 0.75;
+  margin-top: 2px;
+}
+
+/* ── batch row card ──────────────────────────────────────────────────── */
+.row {
+  border: 1px solid var(--ds-color-border, #333);
+  border-radius: 10px;
+  overflow: hidden;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--ds-color-bg-soft, #262626) 92%, transparent),
+    var(--ds-color-bg-soft, #222)
+  );
+}
+
+.row:hover {
+  box-shadow: 0 6px 18px color-mix(in srgb, #000 45%, transparent);
+  transform: translateY(-1px);
+}
+
+.rowHead {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.rowHead:hover {
+  background: color-mix(in srgb, var(--ds-color-bg-soft, #2a2a2a) 70%, transparent);
+}
+
+.rowBar {
+  width: 4px;
+  border-radius: 4px;
+  align-self: stretch;
+  flex-shrink: 0;
+}
+
+.rowBar.rowStateRunning {
+  background: var(--qx-blue);
+}
+
+.rowBar.rowStateDone {
+  background: var(--qx-green);
+}
+
+.rowBar.rowStateError {
+  background: var(--qx-red);
+}
+
+.rowBar.rowStatePaused {
+  background: var(--qx-yellow);
+}
+
+.rowBar.rowStateQueued {
+  background: #6e7781;
+}
+
+.rowMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rowTop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.rowId {
+  font-weight: 650;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+.rowName {
+  opacity: 0.65;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
+}
+
+.rowMeta {
+  opacity: 0.7;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+/* status badge */
+.badge {
+  padding: 1px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  line-height: 1.5;
+  background: color-mix(in srgb, currentColor 16%, transparent);
+  border: 1px solid currentColor;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.badge.rowStateRunning {
+  color: var(--qx-blue);
+}
+
+.badge.rowStateDone {
+  color: var(--qx-green);
+}
+
+.badge.rowStateError {
+  color: var(--qx-red);
+}
+
+.badge.rowStatePaused {
+  color: var(--qx-yellow);
+}
+
+.badge.rowStateQueued {
+  color: #8b949e;
+}
+
+.badge.badgeRunning {
+  color: var(--qx-blue);
+}
+
+.badge.badgeDone {
+  color: var(--qx-green);
+}
+
+.badge.badgeError {
+  color: var(--qx-red);
+}
+
+.badge.badgePaused {
+  color: var(--qx-yellow);
+}
+
+/* progress bar */
+.progressTrack {
+  position: relative;
+  height: 6px;
+  border-radius: 4px;
+  background: var(--ds-color-bg, #161616);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.progressRunning {
+  background: linear-gradient(90deg, var(--qx-blue), color-mix(in srgb, var(--qx-blue) 60%, #fff));
+}
+
+.progressDone {
+  background: linear-gradient(90deg, var(--qx-green), color-mix(in srgb, var(--qx-green) 55%, #fff));
+}
+
+.progressError {
+  background: var(--qx-red);
+}
+
+.progressPaused {
+  background: linear-gradient(90deg, var(--qx-yellow), color-mix(in srgb, var(--qx-yellow) 55%, #fff));
+}
+
+.progressText {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  color: var(--ds-color-text, #e5e5e5);
+  font-weight: 600;
+}
+
+/* ── summary card (detail tab) ───────────────────────────────────────── */
+.summaryCard {
+  border: 1px solid var(--ds-color-border, #333);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--ds-color-bg-soft, #262626) 92%, transparent),
+    var(--ds-color-bg-soft, #222)
+  );
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.summaryRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.batchId {
+  font-weight: 650;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 14px;
+}
+
+.summaryName {
+  opacity: 0.65;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
+}
+
+.summaryMeta {
+  opacity: 0.8;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ── metric table ────────────────────────────────────────────────────── */
+.tableWrap {
+  overflow: auto;
+  max-height: 420px;
+  border: 1px solid var(--ds-color-border, #2a2a2a);
+  border-radius: 8px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: color-mix(in srgb, var(--ds-color-bg-soft, #242424) 92%, transparent);
+  backdrop-filter: blur(4px);
+  opacity: 0.85;
+  font-weight: 600;
+  text-align: left;
+  padding: 6px 8px;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--ds-color-border, #333);
+}
+
+.table th,
+.table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--ds-color-border, #2a2a2a);
+  vertical-align: top;
+  text-align: left;
+}
+
+.table tbody tr {
+  transition: background 0.12s ease;
+}
+
+.table tbody tr:hover td {
+  background: color-mix(in srgb, var(--ds-color-bg-soft, #2a2a2a) 80%, transparent);
+}
+
+.cellNum {
+  text-align: right !important;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.valPos {
+  color: var(--qx-green);
+}
+
+.valNeg {
+  color: var(--qx-red);
+}
+
+.cellExpr {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.cellAlpha {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: nowrap;
+}
+
+.cellStatus {
+  white-space: nowrap;
+}
+
+.cellAction {
+  white-space: nowrap;
+  text-align: center;
+  padding-left: 4px !important;
+  padding-right: 4px !important;
+}
+
+.cellActionNone {
+  opacity: 0.35;
+  font-size: 11px;
+}
+
+/* check badges (shared) */
+.bPass {
+  padding: 0 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  color: var(--qx-green);
+  border: 1px solid color-mix(in srgb, var(--qx-green) 45%, transparent);
+  background: color-mix(in srgb, var(--qx-green) 10%, transparent);
+}
+
+.bWarn {
+  padding: 0 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  color: var(--qx-yellow);
+  border: 1px solid color-mix(in srgb, var(--qx-yellow) 45%, transparent);
+  background: color-mix(in srgb, var(--qx-yellow) 10%, transparent);
+}
+
+.bFail {
+  padding: 0 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  color: var(--qx-red);
+  border: 1px solid color-mix(in srgb, var(--qx-red) 45%, transparent);
+  background: color-mix(in srgb, var(--qx-red) 10%, transparent);
+}
+
+.bNone {
+  padding: 0 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  color: var(--ds-color-text-subtle, #8b949e);
+  opacity: 0.7;
+}
+
+/* ── check details panel（每条 check 的展开视图） ──────────────────────── */
+.checksPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checksSummary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 11px;
+}
+
+.checksSummary .bPass,
+.checksSummary .bWarn,
+.checksSummary .bFail,
+.checksSummary .bNone {
+  /* summary 内的徽章紧凑显示 */
+  font-size: 10px;
+  padding: 1px 8px;
+}
+
+.checksTotal {
+  opacity: 0.6;
+  font-size: 11px;
+}
+
+.checksList {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border: 1px solid var(--ds-color-border, #2a2a2a);
+  border-radius: 8px;
+  padding: 6px 8px;
+  background: color-mix(in srgb, var(--ds-color-bg, #101010) 70%, transparent);
+  max-height: 280px;
+  overflow: auto;
+}
+
+.checkItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 4px;
+  border-radius: 5px;
+  font-size: 11px;
+}
+
+.checkItem:hover {
+  background: color-mix(in srgb, var(--ds-color-bg-soft, #2a2a2a) 70%, transparent);
+}
+
+.checkItemHighlight {
+  background: color-mix(in srgb, var(--qx-blue) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--qx-blue) 35%, transparent);
+  padding: 2px 6px;
+}
+
+.checkItemHighlight .checkItemName {
+  color: var(--qx-blue);
+  font-weight: 650;
+}
+
+.checkItemName {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.checkItemMeta {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-color-text, #e5e5e5);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.checkItemResult {
+  flex-shrink: 0;
+  min-width: 60px;
+  text-align: right;
+}
+
+/* ── 稳健性快评 + prod corr + 本地 SELF_CORRELATION ─────────────────── */
+/* RobustnessCard 的 issue list */
+.issueList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.issueRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.issueRow.issueWarn {
+  border: 1px solid color-mix(in srgb, var(--qx-yellow) 45%, transparent);
+  background: color-mix(in srgb, var(--qx-yellow) 8%, transparent);
+}
+
+.issueRow.issueDanger {
+  border: 1px solid color-mix(in srgb, var(--qx-red) 45%, transparent);
+  background: color-mix(in srgb, var(--qx-red) 8%, transparent);
+}
+
+.issueTag {
+  font-weight: 650;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.issueRow.issueWarn .issueTag {
+  color: var(--qx-yellow);
+  background: color-mix(in srgb, var(--qx-yellow) 20%, transparent);
+}
+
+.issueRow.issueDanger .issueTag {
+  color: var(--qx-red);
+  background: color-mix(in srgb, var(--qx-red) 20%, transparent);
+}
+
+.issueMsg {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* prod-fresh 字段命中 */
+.freshList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.freshTag {
+  font-size: 10px;
+  font-weight: 650;
+  color: var(--qx-green);
+  background: color-mix(in srgb, var(--qx-green) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--qx-green) 45%, transparent);
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-right: 6px;
+}
+
+.freshRow {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.freshField {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  color: var(--qx-green);
+  background: var(--ds-color-bg, #101010);
+  border: 1px solid var(--ds-color-border, #333);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+/* prod corr 数值行 */
+.prodCorrRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  padding: 4px 0;
+}
+
+.prodCorrLabel {
+  opacity: 0.7;
+  font-size: 11px;
+}
+
+.prodCorrValue {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-width: 60px;
+}
+
+/* tier 徽章 */
+.tierBadge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+
+.tier_excellent {
+  color: var(--qx-green);
+  background: color-mix(in srgb, var(--qx-green) 15%, transparent);
+}
+
+.tier_robust {
+  color: var(--qx-green);
+  background: color-mix(in srgb, var(--qx-green) 10%, transparent);
+  opacity: 0.85;
+}
+
+.tier_marginal {
+  color: var(--qx-yellow);
+  background: color-mix(in srgb, var(--qx-yellow) 12%, transparent);
+}
+
+.tier_tight {
+  color: var(--qx-red);
+  background: color-mix(in srgb, var(--qx-red) 12%, transparent);
+}
+
+/* ── cards (submit / config) ─────────────────────────────────────────── */
+.card {
+  border: 1px solid var(--ds-color-border, #333);
+  border-radius: 10px;
+  padding: 12px;
+  background: var(--ds-color-bg-soft, #1c1c1c);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cardIcon {
+  font-size: 14px;
+}
+
+.cardTitle {
+  font-weight: 650;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.fieldRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.fieldLabel {
+  opacity: 0.7;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* 引擎配置条：紧凑输入 + 小按钮 */
+.configInput {
+  width: 52px;
+  padding: 2px 6px;
+  font-size: 11px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.configBtn {
+  background: color-mix(in srgb, var(--qx-blue) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--qx-blue) 50%, transparent);
+  color: var(--qx-blue);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-family: inherit;
+}
+
+.configBtn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--qx-blue) 25%, transparent);
+}
+
+.configBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.metaLine {
+  font-size: 11px;
+  opacity: 0.85;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.submitRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── 提示词列表 ─────────────────────────────────────────────── */
+.promptList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.promptItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid var(--ds-color-border, #333);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ds-color-bg, #101010) 70%, transparent);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.promptItem:hover {
+  border-color: color-mix(in srgb, var(--qx-blue) 45%, transparent);
+  background: color-mix(in srgb, var(--ds-color-bg-soft, #2a2a2a) 60%, transparent);
+}
+
+.promptName {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--ds-color-text, #e5e5e5);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 2px 0;
+  text-align: left;
+}
+
+.promptName:hover {
+  color: var(--qx-blue);
+}
+
+.promptItemIcon {
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.promptItemName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.promptCopyBtn {
+  flex-shrink: 0;
+  color: var(--ds-color-text-subtle, #9b9b9b);
+  font-size: 13px;
+}
+
+.promptCopyBtn:hover {
+  color: var(--qx-blue);
+}
+
+/* 编辑 tab */
+.promptSavedTag {
+  font-size: 11px;
+  color: var(--qx-green);
+  margin-right: 6px;
+}
+
+.promptDelBtn {
+  color: var(--qx-red);
+}
+
+.promptDelBtn:hover {
+  background: color-mix(in srgb, var(--qx-red) 12%, transparent);
+}
+
+.promptTextarea {
+  min-height: 320px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* inputs */
+.input,
+.textarea {
+  background: var(--ds-color-bg, #101010);
+  border: 1px solid var(--ds-color-border, #444);
+  color: var(--ds-color-text, #e5e5e5);
+  border-radius: 6px;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.input:focus,
+.textarea:focus {
+  outline: none;
+  border-color: var(--qx-blue);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--qx-blue) 25%, transparent);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 72px;
+}
+
+/* pretty JSON pre */
+.pre {
+  max-height: 320px;
+  overflow: auto;
+  background: var(--ds-color-bg, #101010);
+  border: 1px solid var(--ds-color-border, #333);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.statusFooter {
+  opacity: 0.5;
+  font-size: 10px;
+  text-align: right;
+  padding: 2px 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.statusFooterLink {
+  color: var(--qx-blue);
+  text-decoration: none;
+  border-bottom: 1px dashed color-mix(in srgb, var(--qx-blue) 50%, transparent);
+  transition: opacity 0.15s, border-color 0.15s;
+}
+
+.statusFooterLink:hover {
+  opacity: 1;
+  border-bottom-color: var(--qx-blue);
+  border-bottom-style: solid;
+}
+
+/* ── Alpha 自选池卡 ───────────────────────────────────────────────────
+ * 语义：状态只有两态（active / unsubmit），配色沿用 --qx-green / 中性灰，
+ * 刻意不用红色——unsubmit 不是错误，只是「还没进 ACTIVE 组合」。 */
+
+.poolAddRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 4px;
+}
+
+.poolAddRow .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.poolMetaLine {
+  font-size: 10px;
+  opacity: 0.7;
+  padding: 2px 2px 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.poolNotice {
+  color: var(--qx-blue);
+  opacity: 0.95;
+}
+
+.poolStats {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.poolActivePill {
+  color: var(--qx-green);
+}
+
+.poolUnsubmitPill {
+  color: var(--ds-color-text-subtle, #8b949e);
+}
+
+.poolUnknownPill {
+  color: var(--qx-yellow);
+}
+
+/* 状态徽章：沿用 .badge 的形状，只换颜色 */
+.badge.poolActive {
+  color: var(--qx-green);
+}
+
+.badge.poolUnsubmit {
+  color: var(--ds-color-text-subtle, #8b949e);
+}
+
+.badge.poolUnknown {
+  color: var(--qx-yellow);
+}
+
+/* alpha_id 做成按钮（点了看 BRAIN 详细 checks），视觉上仍是等宽文本 */
+.poolIdBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--qx-blue);
+  font: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  cursor: pointer;
+  text-align: left;
+  border-bottom: 1px dashed color-mix(in srgb, var(--qx-blue) 45%, transparent);
+}
+
+.poolIdBtn:hover {
+  border-bottom-style: solid;
+}
+
+/* 相关性单元格：数值 + PASS/FAIL 徽章竖排，避免把表格撑宽 */
+.poolCorrCell {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  line-height: 1.3;
+}
+
+.poolErrDot {
+  margin-left: 4px;
+  cursor: help;
+  font-size: 10px;
+}
+
+/* 顶部「今日新增 active」徽标：当日口径，不是账号总量 */
+.dailyBadge {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+  color: var(--qx-green);
+  border: 1px solid color-mix(in srgb, var(--qx-green) 45%, transparent);
+  background: color-mix(in srgb, var(--qx-green) 10%, transparent);
+  cursor: help;
+}
+
+.dailyBadgeStale {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+  cursor: help;
+  color: var(--qx-yellow);
+  border: 1px solid color-mix(in srgb, var(--qx-yellow) 45%, transparent);
+  background: color-mix(in srgb, var(--qx-yellow) 10%, transparent);
+}
+
+.dailyBadgeSub {
+  opacity: 0.65;
+  font-size: 10px;
+}
+
+/* alpha_id 的复制按钮：贴着 id 放，不抢视线 */
+.copyBtn {
+  margin-left: 4px;
+  background: none;
+  border: none;
+  padding: 0 2px;
+  color: var(--ds-color-text-subtle, #8b949e);
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1;
+  border-radius: 4px;
+}
+
+.copyBtn:hover {
+  color: var(--qx-blue);
+  background: color-mix(in srgb, var(--qx-blue) 14%, transparent);
+}
+
+/* 备注列：格子里直接写 */
+.cellNote {
+  min-width: 130px;
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
+}
+
+.noteInput {
+  width: 100%;
+  min-width: 110px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--ds-color-text, #e5e5e5);
+  font-size: 11px;
+  font-family: inherit;
+  padding: 2px 5px;
+}
+
+.noteInput::placeholder {
+  color: var(--ds-color-text-subtle, #8b949e);
+  opacity: 0.55;
+}
+
+.noteInput:hover {
+  border-color: var(--ds-color-border, #333);
+}
+
+.noteInput:focus {
+  outline: none;
+  background: var(--ds-color-bg, #101010);
+  border-color: var(--qx-blue);
+}
+
+.noteHint,
+.noteHintOk {
+  font-size: 10px;
+  margin-left: 2px;
+}
+
+.noteHintOk {
+  color: var(--qx-green);
+}
+
+/* ── 提交栏：不可逆操作，用红边和人隔开 ──────────────────────────────── */
+
+.submitBox {
+  margin: 10px 0 6px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--qx-red) 40%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--qx-red) 6%, transparent);
+}
+
+.submitHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.submitTitle {
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--qx-red);
+}
+
+.submitWarnText {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.submitRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.submitRow .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.submitBtn {
+  background: color-mix(in srgb, var(--qx-red) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--qx-red) 55%, transparent);
+  color: var(--qx-red);
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.submitBtn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--qx-red) 32%, transparent);
+}
+
+.submitBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.submitMsg {
+  font-size: 10px;
+  opacity: 0.85;
+  margin-top: 5px;
+}
+
+.submitProgress {
+  margin-top: 6px;
+  font-size: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.submitSpinner {
+  color: var(--qx-blue);
+}
+
+.submitJobList {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.submitJobRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 10px;
+}
+
+.submitJobId {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.submitJobBadge {
+  padding: 0 7px;
+  border-radius: 20px;
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.submitJobErr {
+  opacity: 0.7;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.submitJobFails {
+  color: var(--qx-red);
+  opacity: 0.85;
+}
+
+/* 表格状态列里的提交结论小徽章 */
+.submitMarkBadge {
+  margin-left: 4px;
+  padding: 0 6px;
+  border-radius: 20px;
+  font-size: 10px;
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  white-space: nowrap;
+}
+
+.submitQueued {
+  color: var(--qx-blue);
+}
+
+.submitOk {
+  color: var(--qx-green);
+}
+
+.submitBad {
+  color: var(--qx-red);
+}
+
+.submitWarn {
+  color: var(--qx-yellow);
+}
+
+/* ── 自选池表格：框必须比下面的红色提交栏更"实" ──────────────────────
+ * 之前表格只有 1px 的深灰边，视线全被红框拽走。这里把池子表格本体做成
+ * 一个有底、有框、有列线的实体面板，红框退成"下面的警告条"。 */
+
+.poolTable {
+  border: 1px solid color-mix(in srgb, var(--ds-color-text, #e5e5e5) 24%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ds-color-bg-soft, #1c1c1c) 60%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--ds-color-text, #e5e5e5) 7%, transparent),
+    0 1px 3px color-mix(in srgb, #000 30%, transparent);
+}
+
+/* 表头压成一条实心带（原样式 opacity:.85 + 半透明，读起来发虚） */
+.poolTable .table thead th {
+  opacity: 1;
+  color: var(--ds-color-text, #e5e5e5);
+  background: color-mix(in srgb, var(--ds-color-bg-soft, #2e2e2e) 96%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--ds-color-text, #e5e5e5) 22%, transparent);
+}
+
+/* 12 列没有竖线会串行，加一条很淡的分列线 */
+.poolTable .table th + th,
+.poolTable .table td + td {
+  border-left: 1px solid color-mix(in srgb, var(--ds-color-text, #e5e5e5) 7%, transparent);
+}
+
+/* 行分隔线也提一档，避免整块糊在一起 */
+.poolTable .table th,
+.poolTable .table td {
+  border-bottom-color: color-mix(in srgb, var(--ds-color-text, #e5e5e5) 10%, transparent);
+}
+
+/* 行高稍微松一点，指标数字更好扫 */
+.poolTable .table td {
+  padding: 6px 9px;
+}
